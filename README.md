@@ -105,4 +105,6 @@ user
 
 for more documentation on `select`, `join`, ... see [mohair](https://github.com/snd/mohair)
 
+everything chains!
+
 ### license: MIT
