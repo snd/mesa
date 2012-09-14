@@ -57,13 +57,13 @@ user.where(id: 3).delete (err) -> # ...
 
 `where` can take any valid [criterion](https://github.com/snd/criterion)
 
-multiple calls to `where` are anded together.
-
 ##### update
 
 ```coffeescript
-user.where(id: 3).update {name: 'bar'}, (err) -> # ...
+user.where(id: 3).where(name: 'foo').update {name: 'bar'}, (err) -> # ...
 ```
+
+multiple calls to `where` are anded together.
 
 ### query
 
