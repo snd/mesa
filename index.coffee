@@ -24,7 +24,7 @@ module.exports = class
 
     # mohair
 
-    table: (table) -> @_modifyMohair (m) -> m.table table
+    table: (table) -> @set('_table', table)._modifyMohair (m) -> m.table table
 
     where: (args...) -> @_modifyMohair (m) -> m.where args...
 
@@ -50,7 +50,9 @@ module.exports = class
         return null if not @_parent?
         @_parent.get key
 
-    _modifyMohair: (f) -> @set '_mohair', f @_getOrCreateMohair()
+    getTable: -> @get '_table'
+
+    _modifyMohair: (f) -> @set '_mohair', f @getMohair()
 
     getConnection: (cb) ->
         connection = @get '_connection'
@@ -59,7 +61,7 @@ module.exports = class
         return connection cb if 'function' is typeof connection
         process.nextTick -> cb null, connection
 
-    _getOrCreateMohair: (cb) ->
+    getMohair: (cb) ->
         @_state = {} if not @_state?
         m = @get '_mohair'
         m = @_state._mohair =  mohair unless m?
@@ -79,7 +81,7 @@ module.exports = class
             else
                 _.pick data, attributes
 
-        m = @_getOrCreateMohair()
+        m = @getMohair()
         q = m.insert safeData
         sql = @postgresPlaceholders q.sql() + ' RETURNING id'
         params = q.params()
@@ -96,7 +98,7 @@ module.exports = class
                     results.rows[0].id
 
     delete: (cb) ->
-        m = @_getOrCreateMohair()
+        m = @getMohair()
         q = m.delete()
         sql = @postgresPlaceholders q.sql()
         params = q.params()
@@ -110,7 +112,7 @@ module.exports = class
 
         throw new Error 'please call attributes' unless attributes?
 
-        m = @_getOrCreateMohair()
+        m = @getMohair()
         q = m.update _.pick data, attributes
         sql = @postgresPlaceholders q.sql()
         params = q.params()
@@ -123,7 +125,7 @@ module.exports = class
     # -----
 
     first: (cb) ->
-        m = @_getOrCreateMohair()
+        m = @getMohair()
         sql = @postgresPlaceholders m.sql()
         params = m.params()
 
@@ -136,7 +138,7 @@ module.exports = class
                 cb null, results.rows[0]
 
     find: (cb) ->
-        m = @_getOrCreateMohair()
+        m = @getMohair()
         sql = @postgresPlaceholders m.sql()
         params = m.params()
 
@@ -149,7 +151,7 @@ module.exports = class
                 cb null, results.rows
 
     exists: (cb) ->
-        m = @_getOrCreateMohair()
+        m = @getMohair()
         sql = @postgresPlaceholders m.sql()
         params = m.params()
 
