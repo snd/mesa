@@ -1,12 +1,15 @@
 mohair = require 'mohair'
 _ = require 'underscore'
 
+# methods marked as FLUENT return a new instance
+
 module.exports = class
 
-    # fluent
-    # ======
+    # setters
+    # -------
 
-    # returns a new Model instance with key set to value
+    # FLUENT
+    # returns a new instance with key set to value
 
     set: (key, value) ->
         object = new @constructor
@@ -16,32 +19,16 @@ module.exports = class
         object._state = state
         object
 
-    # setters
+    # FLUENT
 
     connection: (connection) -> @set '_connection', connection
 
+    # FLUENT
+
     attributes: (attributes) -> @set '_attributes', attributes
 
-    # mohair
-
-    table: (table) -> @set('_table', table)._modifyMohair (m) -> m.table table
-
-    where: (args...) -> @_modifyMohair (m) -> m.where args...
-
-    select: (sql) -> @_modifyMohair (m) -> m.select sql
-
-    join: (sql) -> @_modifyMohair (m) -> m.join sql
-
-    limit: (limit) -> @_modifyMohair (m) -> m.limit limit
-
-    offset: (offset) -> @_modifyMohair (m) -> m.offset offset
-
-    order: (order) -> @_modifyMohair (m) -> m.order order
-
-    group: (group) -> @_modifyMohair (m) -> m.group group
-
-    # not fluent
-    # ==========
+    # getters
+    # -------
 
     # search for a key in the parent chain
 
@@ -52,28 +39,44 @@ module.exports = class
 
     getTable: -> @get '_table'
 
-    _modifyMohair: (f) -> @set '_mohair', f @getMohair()
-
     getConnection: (cb) ->
         connection = @get '_connection'
         unless connection?
-            throw new Error 'no connection. please call connection'
+            throw new Error "the method you are calling requires connection() to be called before it"
         return connection cb if 'function' is typeof connection
         process.nextTick -> cb null, connection
+
+    # mohair
+    # ------
 
     getMohair: (cb) ->
         @_state = {} if not @_state?
         m = @get '_mohair'
-        m = @_state._mohair =  mohair unless m?
+        # set mohair if it isn't already
+        m = @_state._mohair = mohair unless m?
         m
 
-    # command
-    # -------
+    _modifyMohair: (f) -> @set '_mohair', f @getMohair()
+
+    # FLUENT
+
+    table: (table) -> @set('_table', table)._modifyMohair (m) -> m.table table
+
+    where: (args...) -> @_modifyMohair (m) -> m.where args...
+    select: (sql) -> @_modifyMohair (m) -> m.select sql
+    join: (sql) -> @_modifyMohair (m) -> m.join sql
+    limit: (limit) -> @_modifyMohair (m) -> m.limit limit
+    offset: (offset) -> @_modifyMohair (m) -> m.offset offset
+    order: (order) -> @_modifyMohair (m) -> m.order order
+    group: (group) -> @_modifyMohair (m) -> m.group group
+
+    # commands
+    # --------
 
     insert: (data, cb) ->
         attributes = @get '_attributes'
-
-        throw new Error 'please call attributes' unless attributes?
+        unless attributes?
+            throw new Error 'insert() requires attributes() before it'
 
         safeData =
             if Array.isArray data
@@ -110,7 +113,8 @@ module.exports = class
     update: (data, cb) ->
         attributes = @get '_attributes'
 
-        throw new Error 'please call attributes' unless attributes?
+        unless attributes?
+            throw new Error 'update() requires attributes() before it'
 
         m = @getMohair()
         q = m.update _.pick data, attributes
@@ -121,8 +125,8 @@ module.exports = class
             return cb err if err?
             connection.query sql, params, cb
 
-    # query
-    # -----
+    # queries
+    # -------
 
     first: (cb) ->
         m = @getMohair()
@@ -163,7 +167,7 @@ module.exports = class
                 cb null, results.rows.length isnt 0
 
     # misc
-    # ====
+    # ----
 
     postgresPlaceholders: (sql) ->
         # replace ? with $1, $2, ...
