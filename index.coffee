@@ -42,7 +42,7 @@ module.exports = class
     getConnection: (cb) ->
         connection = @get '_connection'
         unless connection?
-            throw new Error "the method you are calling requires connection() to be called before it"
+            throw new Error "the method you are calling requires call to connection() before it"
         return connection cb if 'function' is typeof connection
         process.nextTick -> cb null, connection
 
@@ -76,7 +76,7 @@ module.exports = class
     insert: (data, cb) ->
         attributes = @get '_attributes'
         unless attributes?
-            throw new Error 'insert() requires attributes() before it'
+            throw new Error 'insert() requires call to attributes() before it'
 
         safeData =
             if Array.isArray data
@@ -114,7 +114,7 @@ module.exports = class
         attributes = @get '_attributes'
 
         unless attributes?
-            throw new Error 'update() requires attributes() before it'
+            throw new Error 'update() requires call to attributes() before it'
 
         m = @getMohair()
         q = m.update _.pick data, attributes
