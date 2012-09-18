@@ -139,7 +139,7 @@ project.belongsTo 'user', user,
     foreignKey: 'user_id'   # optional with default: "#{user.getTable()}_id"
 ```
 
-###### has many
+##### has many
 
 use `hasMany` if the foreign key is in the other table (`user` in this example) and
 there are multiple associated records
@@ -150,7 +150,7 @@ user.hasMany 'projects', project,
     foreignKey: 'user_id'   # optional with default: "#{user.getTable()}_id"
 ```
 
-###### has and belongs to many
+##### has and belongs to many
 
 use `hasAndBelongsToMany` if the association uses a join table
 
