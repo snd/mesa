@@ -115,7 +115,7 @@ look [here](https://github.com/snd/mohair) for further documentation.
 
 ##### has one
 
-use `hasOne` if the foreign key is in the other table (`user` in this example)
+use `hasOne` if the foreign key is in the other table (`address` in this example)
 
 ```coffeescript
 user.hasOne 'address', address,
