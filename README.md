@@ -119,8 +119,8 @@ use `hasOne` if the foreign key is in the other table (`address` in this example
 
 ```coffeescript
 user.hasOne 'address', address,
-    primaryKey: 'id'        # optional with default: "id"
-    foreignKey: 'user_id'   # optional with default: "#{user.getTable()}_id"
+    primaryKey: 'id'                # optional with default: "id"
+    foreignKey: 'user_id'           # optional with default: "#{user.getTable()}_id"
 ```
 
 the second argument can be a function which must return a model.
@@ -135,8 +135,8 @@ is defined on (`project` in this example)
 
 ```coffeescript
 project.belongsTo 'user', user,
-    primaryKey: 'id'        # optional with default: "id"
-    foreignKey: 'user_id'   # optional with default: "#{user.getTable()}_id"
+    primaryKey: 'id'                # optional with default: "id"
+    foreignKey: 'user_id'           # optional with default: "#{user.getTable()}_id"
 ```
 
 ##### has many
@@ -146,8 +146,8 @@ there are multiple associated records
 
 ```coffeescript
 user.hasMany 'projects', project,
-    primaryKey: 'id'        # optional with default: "id"
-    foreignKey: 'user_id'   # optional with default: "#{user.getTable()}_id"
+    primaryKey: 'id'                # optional with default: "id"
+    foreignKey: 'user_id'           # optional with default: "#{user.getTable()}_id"
 ```
 
 ##### has and belongs to many
