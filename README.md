@@ -1,16 +1,5 @@
 # mesa
 
-- is a sensible abstraction which makes most of operations extremely
-- base for your models
-- makes most operations extremely easy
-- let's you do everything else
- while still letting
-- is not an orm
-- is flexible
-- works only with postgres
-
-real world needs
-
 ### immutability
 
 mesa objects are immutable.
@@ -191,6 +180,8 @@ user.includes(shipping_address: {street: true, town: true}, billing_address: tru
 ### todo
 
 - better documentation
+- guidelines for extending mesa
+- description text
 - more convincing usage examples
 - check more user errors
 - use underscore less
