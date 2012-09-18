@@ -124,7 +124,7 @@ module.exports =
                 .table('user')
                 .attributes(['name', 'email'])
 
-            userModel.insert [
+            userModel.insertMany [
                 {name: 'foo', email: 'foo@example.com', x: 5}
                 {name: 'bar', email: 'bar@example.com', x: 6}
             ], (err, ids) ->

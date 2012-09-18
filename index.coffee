@@ -85,14 +85,8 @@ module.exports = class
         unless attributes?
             throw new Error 'insert() requires call to attributes() before it'
 
-        safeData =
-            if Array.isArray data
-                data.map (x) -> _.pick x, attributes
-            else
-                _.pick data, attributes
-
         m = @getMohair()
-        q = m.insert safeData
+        q = m.insert _.pick data, attributes
         sql = @postgresPlaceholders q.sql() + ' RETURNING id'
         params = q.params()
 
@@ -102,10 +96,25 @@ module.exports = class
             connection.query sql, params, (err, results) ->
                 return cb err if err?
 
-                cb null, if Array.isArray data
-                    _.pluck results.rows, 'id'
-                else
-                    results.rows[0].id
+                cb null, results.rows[0].id
+
+    insertMany: (data, cb) ->
+        attributes = @get '_attributes'
+        unless attributes?
+            throw new Error 'insertMany() requires call to attributes() before it'
+
+        m = @getMohair()
+        q = m.insert data.map (x) -> _.pick x, attributes
+        sql = @postgresPlaceholders q.sql() + ' RETURNING id'
+        params = q.params()
+
+        @getConnection (err, connection) ->
+            return cb err if err?
+
+            connection.query sql, params, (err, results) ->
+                return cb err if err?
+
+                cb null, _.pluck results.rows, 'id'
 
     delete: (cb) ->
         m = @getMohair()

@@ -49,7 +49,7 @@ user.insert {
 ##### insert multiple records
 
 ```coffeescript
-user.insert [
+user.insertMany [
     {name: 'foo'}
     {name: 'bar'}
 ], (err, userIds) -> # ...
