@@ -180,11 +180,14 @@ user.includes(shipping_address: {street: true, town: true}, billing_address: tru
 ### todo
 
 - better documentation
+- check that key arrays for getting assocations are not empty
 - guidelines for extending mesa
 - description text
 - more convincing usage examples
 - check more user errors
 - use underscore less
 - refactor association fetching code
+- custom getters for associations
+- `primaryKey` to override primary key column
 
 ### license: MIT
