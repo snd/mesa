@@ -1,5 +1,8 @@
 # mesa
 
+mesa makes it easy to access data in a postgres database from nodejs
+[![Build Status](https://travis-ci.org/snd/mesa.png)](https://travis-ci.org/snd/mesa)
+
 ### immutability
 
 mesa objects are immutable.
@@ -18,12 +21,12 @@ npm install mesa
 
 ```coffeescript
 pg = require 'pg'
-Model = require 'mesa'
+mesa = require 'mesa'
 
 getConnection = (cb) -> pg.create 'tcp://foo@localhost/bar', cb
 
 # the user object will be used in all following examples
-user = new Model()
+user = mesa
     .table('user')
     .connection(getConnection)
     .attributes(['name', 'email'])
@@ -177,17 +180,68 @@ includes can be nested (arbitrarily deep)
 user.includes(shipping_address: {street: true, town: true}, billing_address: true, friends: {billing_address: true})
 ```
 
+### extending mesa
+
+##### add your own functions
+
+```coffeescript
+temporary = Object.create mesa
+temporary.activeAdmins = (cb) -> @where(visible: true, role: 'admin')
+
+user = temporary.table('user')
+
+user.activeAdmins().find (err, activeAdmins) -> # ...
+```
+
+##### overwrite existing functions
+
+when inserting a user, also insert his address and do both in the same transaction:
+
+```coffeescript
+address = mesa
+    .table('address')
+    .attributes(['name', 'street', 'user_id']
+
+temporary = Object.create mesa
+temporary.insert = (data, cb) ->
+    @getConnection (err, connection) =>
+        return cb err if err?
+
+        connection.query 'BEGIN;', (err) =>
+            return cb err if err?
+
+            # do the original insert, but on the transactional connection
+            mesa.insert.call @connection(connection), data, (err, userId) =>
+                return cb err if err?
+
+                address = data
+                address.user_id = userId
+
+                # insert the address portion of data on the transactional connection
+                address.connection(connection).insert data, (err) ->
+                    return cb err if err?
+
+                    connection.query 'COMMIT;', [], (err) =>
+                        return cb err if err?
+                        cb null, userId
+
+user = temporary.table('user').attributes(['email', 'password'])
+
+user.insert {
+    password: 'bar'
+    email: 'foo@example.com'
+    name: 'foo'
+    address: 'foostreet'
+}, (err, userId) -> # ...
+```
+
 ### todo
 
 - better documentation
 - check that key arrays for getting assocations are not empty
-- guidelines for extending mesa
-- description text
 - more convincing usage examples
 - check more user errors
 - use underscore less
-- refactor association fetching code
-- custom getters for associations
-- `primaryKey` to override primary key column
+- simplify association fetching code
 
 ### license: MIT
