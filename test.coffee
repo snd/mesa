@@ -1,11 +1,11 @@
 _ = require 'underscore'
 
-Model = require './index'
+mesa = require './index'
 
 module.exports =
 
     'set and get': (test) ->
-        m = new Model()
+        m = mesa
         m1 = m.set('string', 'foo')
         m2 = m1.set('number', 1)
         m3 = m2.set('string', 'bar')
@@ -13,40 +13,40 @@ module.exports =
         m5 = m4.set('string', 'baz')
         m6 = m5.set('number', 3)
 
-        test.ok not m.get('string')?
-        test.ok not m.get('number')?
+        test.ok not m.string?
+        test.ok not m.number?
 
-        test.equal 'foo', m1.get('string')
-        test.ok not m1.get('number')?
+        test.equal 'foo', m1.string
+        test.ok not m1.number?
 
-        test.equal 'foo', m2.get('string')
-        test.equal 1, m2.get('number')
+        test.equal 'foo', m2.string
+        test.equal 1, m2.number
 
-        test.equal 'bar', m3.get('string')
-        test.equal 1, m3.get('number')
+        test.equal 'bar', m3.string
+        test.equal 1, m3.number
 
-        test.equal 'bar', m4.get('string')
-        test.equal 2, m4.get('number')
+        test.equal 'bar', m4.string
+        test.equal 2, m4.number
 
-        test.equal 'baz', m5.get('string')
-        test.equal 2, m5.get('number')
+        test.equal 'baz', m5.string
+        test.equal 2, m5.number
 
-        test.equal 'baz', m6.get('string')
-        test.equal 3, m6.get('number')
+        test.equal 'baz', m6.string
+        test.equal 3, m6.number
 
         test.done()
 
     'throw':
 
         "when connection wasn't called": (test) ->
-            userModel = new Model()
+            userModel = mesa
 
             test.throws ->
                 userModel.find {id: 1}, -> test.fail()
             test.done()
 
         "when table wasn't called": (test) ->
-            userModel = new Model()
+            userModel = mesa
                 .connection(-> test.fail)
 
             test.throws ->
@@ -54,7 +54,7 @@ module.exports =
             test.done()
 
         "when attributes wasn't called before insert": (test) ->
-            userModel = new Model()
+            userModel = mesa
                 .connection(-> test.fail)
                 .table('user')
 
@@ -63,7 +63,7 @@ module.exports =
             test.done()
 
         "when attributes wasn't called before update": (test) ->
-            userModel = new Model()
+            userModel = mesa
                 .connection(-> test.fail)
                 .table('user')
 
@@ -77,7 +77,7 @@ module.exports =
             connection =
                 query: -> test.fail()
 
-            userModel = new Model()
+            userModel = mesa
                 .table('user')
                 .includes(billing_address: true)
 
@@ -85,7 +85,6 @@ module.exports =
                 userModel.fetchIncludes connection, {id: 3, name: 'foo'}, -> test.fail()
 
             test.done()
-
 
     'command':
 
@@ -99,7 +98,7 @@ module.exports =
                     test.deepEqual params, ['foo', 'foo@example.com']
                     cb null, {rows: [{id: 3}]}
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
                 .attributes(['name', 'email'])
@@ -119,7 +118,7 @@ module.exports =
                     test.deepEqual params, ['foo', 'foo@example.com', 'bar', 'bar@example.com']
                     cb null, {rows: [{id: 3}, {id: 4}]}
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
                 .attributes(['name', 'email'])
@@ -141,7 +140,7 @@ module.exports =
                     test.deepEqual params, [3, 'foo']
                     cb()
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
 
@@ -158,7 +157,7 @@ module.exports =
                     test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo']
                     cb()
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
                 .attributes(['name', 'email'])
@@ -180,7 +179,7 @@ module.exports =
                     test.deepEqual params, [3]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
 
@@ -198,7 +197,7 @@ module.exports =
                     test.deepEqual params, [3]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
 
@@ -216,7 +215,7 @@ module.exports =
                     test.deepEqual params, [3]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
 
@@ -234,7 +233,7 @@ module.exports =
                     test.deepEqual params, [3, 'foo', 10, 20]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
-            userModel = new Model()
+            userModel = mesa
                 .connection(connection)
                 .table('user')
                 .select('user.*, count(project.id) AS project_count')
@@ -254,28 +253,27 @@ module.exports =
 
         test.expect 8
 
-        User = class extends Model
+        userModel = Object.create mesa
 
-            insert: (data, cb) ->
-                @getConnection (err, connection) =>
+        userModel.insert = (data, cb) ->
+            @getConnection (err, connection) =>
+                return cb err if err?
+
+                connection.query 'BEGIN;', [], (err) =>
                     return cb err if err?
 
-                    connection.query 'BEGIN;', [], (err) =>
+                    # do the original insert, but on the connection we just got
+                    # and started the transaction on
+                    mesa.insert.call @connection(connection), data, (err, userId) =>
                         return cb err if err?
 
-                        # do the original insert, but on the connection we just got
-                        # and started the transaction on
-                        insertOfSuperclass = @constructor.__super__.insert
-                        insertOfSuperclass.call @connection(connection), data, (err, userId) =>
+                        test.equal userId, 200
+
+                        # do other things in the transaction...
+
+                        connection.query 'COMMIT;', [], (err) =>
                             return cb err if err?
-
-                            test.equal userId, 200
-
-                            # do other things in the transaction...
-
-                            connection.query 'COMMIT;', [], (err) =>
-                                return cb err if err?
-                                cb null, 500
+                            cb null, 500
 
         getConnection = (cb) ->
             call = 1
@@ -297,7 +295,7 @@ module.exports =
                             test.deepEqual params, []
                             cb()
 
-        new User()
+        userModel
             .table('user')
             .connection(getConnection)
             .attributes(['name', 'email'])
@@ -333,11 +331,11 @@ module.exports =
                                     {street: 'djfslkfj', zip_code: 12345, user_id: 4}
                                 ]}
 
-                addressModel = new Model()
+                addressModel = mesa
                     .connection(-> test.fail())
                     .table('address')
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(connection)
                     .table('user')
                     .hasOne('billing_address', addressModel)
@@ -380,12 +378,11 @@ module.exports =
                                     {name: 'baz', id: 4}
                                 ]}
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(-> test.fail())
                     .table('user')
-                    # .hasOne('billing_address')
 
-                addressModel = new Model()
+                addressModel = mesa
                     .connection(connection)
                     .table('address')
                     .belongsTo('person', userModel)
@@ -429,11 +426,11 @@ module.exports =
                                     {name: 'learn clojure', user_id: 3}
                                 ]}
 
-                taskModel = new Model()
+                taskModel = mesa
                     .connection(-> test.fail())
                     .table('task')
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(connection)
                     .table('user')
                     .hasMany('tasks', taskModel)
@@ -486,11 +483,11 @@ module.exports =
                                     {id: 50, name: 'bad bad role'}
                                 ]}
 
-                roleModel = new Model()
+                roleModel = mesa
                     .connection(connection)
                     .table('role')
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(connection)
                     .table('user')
                     .hasAndBelongsToMany('roles', roleModel,
@@ -538,11 +535,11 @@ module.exports =
                                     {street: 'bar street', zip_code: 12345, user_id: 10}
                                 ]}
 
-                addressModel = new Model()
+                addressModel = mesa
                     .connection(-> test.fail())
                     .table('address')
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(connection)
                     .table('user')
                     .hasOne('billing_address', addressModel)
@@ -595,12 +592,12 @@ module.exports =
                                     {name: 'baz', id: 4}
                                 ]}
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(-> test.fail())
                     .table('user')
                     # .hasOne('billing_address')
 
-                addressModel = new Model()
+                addressModel = mesa
                     .connection(connection)
                     .table('address')
                     .belongsTo('person', userModel)
@@ -656,11 +653,11 @@ module.exports =
                                     {name: 'learn clojure', user_id: 4}
                                 ]}
 
-                taskModel = new Model()
+                taskModel = mesa
                     .connection(-> test.fail())
                     .table('task')
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(connection)
                     .table('user')
                     .hasMany('tasks', taskModel)
@@ -728,11 +725,11 @@ module.exports =
                                     {id: 50, name: 'bad bad role'}
                                 ]}
 
-                roleModel = new Model()
+                roleModel = mesa
                     .connection(connection)
                     .table('role')
 
-                userModel = new Model()
+                userModel = mesa
                     .connection(connection)
                     .table('user')
                     .hasAndBelongsToMany('roles', roleModel,
@@ -831,14 +828,14 @@ module.exports =
                             ]}
 
             model = {}
-            model.address = new Model()
+            model.address = mesa
                 .connection(connection)
                 .table('address')
                 .hasOne('user', (-> model.user),
                     foreignKey: 'billing_id'
                 )
 
-            model.user = new Model()
+            model.user = mesa
                 .connection(connection)
                 .table('user')
                 .belongsTo('billing_address', (-> model.address),
