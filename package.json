@@ -1,6 +1,6 @@
 {
     "name": "mesa",
-    "description": "",
+    "description": "mesa makes it easy to access data in a postgres database",
     "author": "Maximilian Krüger <kruemaxi@googlemail.com> (http://github.com/snd)",
     "version": "0.1.0",
     "repository": {
