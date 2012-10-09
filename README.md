@@ -1,6 +1,6 @@
 # mesa
 
-mesa makes it easy to access data in a postgres database from nodejs
+mesa provides easy access to data in a postgres database
 [![Build Status](https://travis-ci.org/snd/mesa.png)](https://travis-ci.org/snd/mesa)
 
 ### immutability
