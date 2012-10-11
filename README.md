@@ -129,12 +129,12 @@ user.hasOne 'address', address,
 the second argument can be a function which must return a model.
 this can be used to resolve models which are not yet created when the association
 is defined.
-its also a way to do self associations.
+it's also a way to do self associations.
 
 ##### belongs to
 
 use `belongsTo` if the foreign key is in the table of the model that `belongsTo`
-is defined on (`project` in this example)
+is called on (`project` in this example)
 
 ```coffeescript
 project.belongsTo 'user', user,
