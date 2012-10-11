@@ -185,32 +185,32 @@ user.includes(shipping_address: {street: true, town: true}, billing_address: tru
 ##### add your own functions
 
 ```coffeescript
-temporary = Object.create mesa
-temporary.activeAdmins = (cb) -> @where(visible: true, role: 'admin')
+user = mesa.table('user')
 
-user = temporary.table('user')
+user.activeAdmins = -> @where(visible: true, role: 'admin')
 
 user.activeAdmins().find (err, activeAdmins) -> # ...
 ```
 
 ##### overwrite existing functions
 
-when inserting a user, also insert his address and do both in the same transaction:
+when inserting a user, also insert his address. do both in the same transaction:
 
 ```coffeescript
 address = mesa
     .table('address')
     .attributes(['name', 'street', 'user_id']
 
-temporary = Object.create mesa
-temporary.insert = (data, cb) ->
+user = mesa.table('user').attributes(['email', 'password'])
+
+user.insert = (data, cb) ->
     @getConnection (err, connection) =>
         return cb err if err?
 
         connection.query 'BEGIN;', (err) =>
             return cb err if err?
 
-            # do the original insert, but on the transactional connection
+            # do the original insert but on the transactional connection
             mesa.insert.call @connection(connection), data, (err, userId) =>
                 return cb err if err?
 
@@ -221,11 +221,10 @@ temporary.insert = (data, cb) ->
                 address.connection(connection).insert data, (err) ->
                     return cb err if err?
 
-                    connection.query 'COMMIT;', [], (err) =>
+                    connection.query 'COMMIT;', [], (err) ->
                         return cb err if err?
                         cb null, userId
 
-user = temporary.table('user').attributes(['email', 'password'])
 
 user.insert {
     password: 'bar'
