@@ -36,7 +36,7 @@ user = mesa
 callback and call it with a connection object.
 providing a connection object explictely is useful for transactions.
 
-`attributes()` sets the keys to pick from data in `create` and `update`
+`attributes()` sets the keys to pick from data in `create` and `update`.
 it must be called before using `create` or `update`
 
 ### command
