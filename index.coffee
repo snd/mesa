@@ -90,6 +90,9 @@ module.exports =
         unless @_attributes?
             throw new Error 'update() requires call to attributes() before it'
 
+        if Object.keys(data).length is 0
+            throw new Error 'empty updates'
+
         m = @_mohair.update _.pick data, @_attributes
         sql = @postgresPlaceholders m.sql()
         params = m.params()
