@@ -94,7 +94,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'INSERT INTO user(name, email) VALUES ($1, $2) RETURNING id'
+                    test.equal sql, 'INSERT INTO "user"(name, email) VALUES ($1, $2) RETURNING id'
                     test.deepEqual params, ['foo', 'foo@example.com']
                     cb null, {rows: [{id: 3}]}
 
@@ -114,7 +114,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'INSERT INTO user(name, email) VALUES ($1, $2), ($3, $4) RETURNING id'
+                    test.equal sql, 'INSERT INTO "user"(name, email) VALUES ($1, $2), ($3, $4) RETURNING id'
                     test.deepEqual params, ['foo', 'foo@example.com', 'bar', 'bar@example.com']
                     cb null, {rows: [{id: 3}, {id: 4}]}
 
@@ -136,7 +136,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'DELETE FROM user WHERE id = $1 AND name = $2'
+                    test.equal sql, 'DELETE FROM "user" WHERE id = $1 AND name = $2'
                     test.deepEqual params, [3, 'foo']
                     cb()
 
@@ -153,7 +153,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'UPDATE user SET name = $1, email = $2 WHERE id = $3 AND name = $4'
+                    test.equal sql, 'UPDATE "user" SET name = $1, email = $2 WHERE id = $3 AND name = $4'
                     test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo']
                     cb()
 
@@ -175,7 +175,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'SELECT name FROM user WHERE id = $1'
+                    test.equal sql, 'SELECT name FROM "user" WHERE id = $1'
                     test.deepEqual params, [3]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
@@ -193,7 +193,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'SELECT name FROM user WHERE id = $1'
+                    test.equal sql, 'SELECT name FROM "user" WHERE id = $1'
                     test.deepEqual params, [3]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
@@ -211,7 +211,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'SELECT * FROM user WHERE id = $1'
+                    test.equal sql, 'SELECT * FROM "user" WHERE id = $1'
                     test.deepEqual params, [3]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
@@ -229,7 +229,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'SELECT user.*, count(project.id) AS project_count FROM user JOIN project ON user.id = project.user_id WHERE id = $1 AND name = $2 GROUP BY user.id ORDER BY created DESC, name ASC LIMIT $3 OFFSET $4'
+                    test.equal sql, 'SELECT user.*, count(project.id) AS project_count FROM "user" JOIN project ON user.id = project.user_id WHERE id = $1 AND name = $2 GROUP BY user.id ORDER BY created DESC, name ASC LIMIT $3 OFFSET $4'
                     test.deepEqual params, [3, 'foo', 10, 20]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
@@ -287,7 +287,7 @@ module.exports =
                             test.deepEqual params, []
                             cb()
                         when 2
-                            test.equal sql, 'INSERT INTO user(name, email) VALUES ($1, $2) RETURNING id'
+                            test.equal sql, 'INSERT INTO "user"(name, email) VALUES ($1, $2) RETURNING id'
                             test.deepEqual params, ['foo', 'foo@example.com']
                             cb null, {rows: [{id: 200}]}
                         when 3
@@ -317,14 +317,14 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM user WHERE id = $1'
+                                test.equal sql, 'SELECT * FROM "user" WHERE id = $1'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
                                     {name: 'bar', id: 4}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM address WHERE user_id IN ($1)'
+                                test.equal sql, 'SELECT * FROM "address" WHERE user_id IN ($1)'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {street: 'foo street', zip_code: 12345, user_id: 3}
@@ -363,14 +363,14 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM address WHERE id = $1'
+                                test.equal sql, 'SELECT * FROM "address" WHERE id = $1'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {street: 'foo street', zip_code: 12345, user_id: 3}
                                     {street: 'bar street', zip_code: 12345, user_id: 10}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM user WHERE id IN ($1)'
+                                test.equal sql, 'SELECT * FROM "user" WHERE id IN ($1)'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
@@ -410,14 +410,14 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM user WHERE id = $1'
+                                test.equal sql, 'SELECT * FROM "user" WHERE id = $1'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
                                     {name: 'bar', id: 4}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM task WHERE user_id IN ($1)'
+                                test.equal sql, 'SELECT * FROM "task" WHERE user_id IN ($1)'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {name: 'do laundry', user_id: 3}
@@ -459,14 +459,14 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM user WHERE id = $1'
+                                test.equal sql, 'SELECT * FROM "user" WHERE id = $1'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
                                     {name: 'bar', id: 4}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM user_role WHERE user_id IN ($1)'
+                                test.equal sql, 'SELECT * FROM "user_role" WHERE user_id IN ($1)'
                                 test.deepEqual params, [3]
                                 cb null, {rows: [
                                     {user_id: 3, role_id: 30}
@@ -474,7 +474,7 @@ module.exports =
                                     {user_id: 3, role_id: 60}
                                 ]}
                             when 3
-                                test.equal sql, 'SELECT * FROM role WHERE id IN ($1, $2, $3)'
+                                test.equal sql, 'SELECT * FROM "role" WHERE id IN ($1, $2, $3)'
                                 test.deepEqual params, [30, 40, 60]
                                 cb null, {rows: [
                                     {id: 30, name: 'jedi'}
@@ -520,14 +520,14 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM user'
+                                test.equal sql, 'SELECT * FROM "user"'
                                 test.deepEqual params, []
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
                                     {name: 'bar', id: 10}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM address WHERE user_id IN ($1, $2)'
+                                test.equal sql, 'SELECT * FROM "address" WHERE user_id IN ($1, $2)'
                                 test.deepEqual params, [3, 10]
                                 cb null, {rows: [
                                     {street: 'foo street', zip_code: 12345, user_id: 3}
@@ -577,14 +577,14 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM address'
+                                test.equal sql, 'SELECT * FROM "address"'
                                 test.deepEqual params, []
                                 cb null, {rows: [
                                     {street: 'foo street', zip_code: 12345, user_id: 3}
                                     {street: 'bar street', zip_code: 12345, user_id: 10}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM user WHERE id IN ($1, $2)'
+                                test.equal sql, 'SELECT * FROM "user" WHERE id IN ($1, $2)'
                                 test.deepEqual params, [3, 10]
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
@@ -635,14 +635,14 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM user'
+                                test.equal sql, 'SELECT * FROM "user"'
                                 test.deepEqual params, []
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
                                     {name: 'bar', id: 4}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM task WHERE user_id IN ($1, $2)'
+                                test.equal sql, 'SELECT * FROM "task" WHERE user_id IN ($1, $2)'
                                 test.deepEqual params, [3, 4]
                                 cb null, {rows: [
                                     {name: 'do laundry', user_id: 3}
@@ -696,7 +696,7 @@ module.exports =
                     query: (sql, params, cb) ->
                         switch call++
                             when 1
-                                test.equal sql, 'SELECT * FROM user'
+                                test.equal sql, 'SELECT * FROM "user"'
                                 test.deepEqual params, []
                                 cb null, {rows: [
                                     {name: 'foo', id: 3}
@@ -704,7 +704,7 @@ module.exports =
                                     {name: 'baz', id: 5}
                                 ]}
                             when 2
-                                test.equal sql, 'SELECT * FROM user_role WHERE user_id IN ($1, $2, $3)'
+                                test.equal sql, 'SELECT * FROM "user_role" WHERE user_id IN ($1, $2, $3)'
                                 test.deepEqual params, [3, 4, 5]
                                 cb null, {rows: [
                                     {user_id: 5, role_id: 40}
@@ -716,7 +716,7 @@ module.exports =
                                     {user_id: 5, role_id: 50}
                                 ]}
                             when 3
-                                test.equal sql, 'SELECT * FROM role WHERE id IN ($1, $2, $3, $4)'
+                                test.equal sql, 'SELECT * FROM "role" WHERE id IN ($1, $2, $3, $4)'
                                 test.deepEqual params, [40, 60, 30, 50]
                                 cb null, {rows: [
                                     {id: 30, name: 'jedi'}
@@ -778,7 +778,7 @@ module.exports =
                 query: (sql, params, cb) ->
                     switch call++
                         when 1
-                            test.equal sql, 'SELECT * FROM user'
+                            test.equal sql, 'SELECT * FROM "user"'
                             test.deepEqual params, []
                             cb null, {rows: [
                                 {name: 'foo', id: 1, shipping_id: 11, billing_id: 101}
@@ -786,7 +786,7 @@ module.exports =
                                 {name: 'baz', id: 3, shipping_id: 13, billing_id: 103}
                             ]}
                         when 2
-                            test.equal sql, 'SELECT * FROM friend WHERE user_id1 IN ($1, $2, $3)'
+                            test.equal sql, 'SELECT * FROM "friend" WHERE user_id1 IN ($1, $2, $3)'
                             test.deepEqual params, [1, 2, 3]
                             cb null, {rows: [
                                 {user_id1: 1, user_id2: 2}
@@ -795,7 +795,7 @@ module.exports =
                                 {user_id1: 3, user_id2: 2}
                             ]}
                         when 3
-                            test.equal sql, 'SELECT * FROM user WHERE id IN ($1, $2, $3)'
+                            test.equal sql, 'SELECT * FROM "user" WHERE id IN ($1, $2, $3)'
                             test.deepEqual params, [2, 3, 1]
                             cb null, {rows: [
                                 {name: 'bar', id: 2, shipping_id: 12, billing_id: 102}
@@ -803,7 +803,7 @@ module.exports =
                                 {name: 'foo', id: 1, shipping_id: 11, billing_id: 101}
                             ]}
                         when 4
-                            test.equal sql, 'SELECT * FROM address WHERE id IN ($1, $2, $3)'
+                            test.equal sql, 'SELECT * FROM "address" WHERE id IN ($1, $2, $3)'
                             test.deepEqual params, [12, 13, 11]
                             cb null, {rows: [
                                 {street: 'bar shipping street', id: 12}
@@ -811,7 +811,7 @@ module.exports =
                                 {street: 'foo shipping street', id: 11}
                             ]}
                         when 5
-                            test.equal sql, 'SELECT * FROM address WHERE id IN ($1, $2, $3)'
+                            test.equal sql, 'SELECT * FROM "address" WHERE id IN ($1, $2, $3)'
                             test.deepEqual params, [101, 102, 103]
                             cb null, {rows: [
                                 {street: 'foo billing street', id: 101}
@@ -819,7 +819,7 @@ module.exports =
                                 {street: 'baz billing street', id: 103}
                             ]}
                         when 6
-                            test.equal sql, 'SELECT * FROM user WHERE billing_id IN ($1, $2, $3)'
+                            test.equal sql, 'SELECT * FROM "user" WHERE billing_id IN ($1, $2, $3)'
                             test.deepEqual params, [101, 102, 103]
                             cb null, {rows: [
                                 {name: 'bar', id: 2, shipping_id: 12, billing_id: 102}

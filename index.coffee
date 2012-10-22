@@ -1,4 +1,4 @@
-mohair = require 'mohair'
+mohair = require('mohair').escapeTableName((tableName) -> "\"#{tableName}\"")
 _ = require 'underscore'
 async = require 'async'
 
