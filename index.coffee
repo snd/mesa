@@ -31,7 +31,7 @@ module.exports =
 
     where: (args...) -> @set '_mohair', @_mohair.where args...
     select: (arg) -> @set '_mohair', @_mohair.select arg
-    join: (arg) -> @set '_mohair', @_mohair.join arg
+    join: (args...) -> @set '_mohair', @_mohair.join args...
     limit: (arg) -> @set '_mohair', @_mohair.limit arg
     offset: (arg) -> @set '_mohair', @_mohair.offset arg
     order: (arg) -> @set '_mohair', @_mohair.order arg
