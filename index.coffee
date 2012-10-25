@@ -258,7 +258,7 @@ module.exports =
                                 relevantIntersection = _.filter intersection, (x) ->
                                     x[foreignKey] is item[primaryKey]
                                 otherPrimaryKeys = _.pluck relevantIntersection, otherForeignKey
-                                item[includeName] = _.filter associated, (x) ->
+                                item[includeName] = associated.filter (x) ->
                                     x[otherPrimaryKey] in otherPrimaryKeys
                             cb null, items
                 else
