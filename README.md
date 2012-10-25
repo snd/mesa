@@ -242,5 +242,6 @@ user.insert {
 - check more user errors
 - use underscore less
 - simplify association fetching code
+- support mysql
 
 ### license: MIT
