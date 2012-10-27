@@ -29,6 +29,9 @@ module.exports =
 
     _mohair: mohair
 
+    _primaryKey: 'id'
+    primaryKey: (arg) -> @set '_primaryKey', arg
+
     where: (args...) -> @set '_mohair', @_mohair.where args...
     select: (arg) -> @set '_mohair', @_mohair.select arg
     join: (args...) -> @set '_mohair', @_mohair.join args...
@@ -49,7 +52,7 @@ module.exports =
             throw new Error 'nothing to insert'
 
         m = @_mohair.insert cleanData
-        sql = @postgresPlaceholders m.sql() + ' RETURNING id'
+        sql = @postgresPlaceholders m.sql() + " RETURNING #{@_primaryKey}"
         params = m.params()
 
         @getConnection (err, connection) ->
@@ -66,7 +69,7 @@ module.exports =
 
         attributes = @_attributes
         m = @_mohair.insert data.map (x) -> _.pick x, attributes
-        sql = @postgresPlaceholders m.sql() + ' RETURNING id'
+        sql = @postgresPlaceholders m.sql() + " RETURNING #{@_primaryKey}"
         params = m.params()
 
         @getConnection (err, connection) ->
