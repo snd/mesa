@@ -2,46 +2,58 @@ mohair = require('mohair').escapeTableName((tableName) -> "\"#{tableName}\"")
 _ = require 'underscore'
 async = require 'async'
 
-postgresPlaceholders = (sql) ->
-    # replace ?, ?, ... with $1, $2, ...
-    index = 1
-    sql.replace /\?/g, -> '$' + index++
-
 module.exports =
+
+    # adapter
+    # -------
+
+    replacePlaceholders: (sql) ->
+        # replace ?, ?, ... with $1, $2, ...
+        index = 1
+        sql.replace /\?/g, -> '$' + index++
+
+    # default
+    # --------
+
+    _mohair: mohair
+    _primaryKey: 'id'
+
+    # setter
+    # ------
 
     set: (key, value) ->
         object = Object.create @
         object[key] = value
         object
 
-    table: (table) -> @set('_table', table).set '_mohair', @_mohair.table table
+    table: (arg) -> @set('_table', arg).set '_mohair', @_mohair.table arg
 
-    connection: (connection) -> @set '_connection', connection
-
-    attributes: (attributes) -> @set '_attributes', attributes
-
-    getConnection: (cb) ->
-        connection = @_connection
-        unless connection?
-            throw new Error "the method you are calling requires call to connection() before it"
-        return connection cb if 'function' is typeof connection
-        process.nextTick -> cb null, connection
-
-    _mohair: mohair
-
-    _primaryKey: 'id'
+    connection: (arg) -> @set '_connection', arg
+    attributes: (arg) -> @set '_attributes', arg
     primaryKey: (arg) -> @set '_primaryKey', arg
+    includes: (arg) -> @set '_includes', arg
 
     where: (args...) -> @set '_mohair', @_mohair.where args...
-    select: (arg) -> @set '_mohair', @_mohair.select arg
     join: (args...) -> @set '_mohair', @_mohair.join args...
+
+    select: (arg) -> @set '_mohair', @_mohair.select arg
     limit: (arg) -> @set '_mohair', @_mohair.limit arg
     offset: (arg) -> @set '_mohair', @_mohair.offset arg
     order: (arg) -> @set '_mohair', @_mohair.order arg
     group: (arg) -> @set '_mohair', @_mohair.group arg
 
-    # commands
-    # --------
+    # getter
+    # ------
+
+    getConnection: (cb) ->
+        connection = @_connection
+        unless connection?
+            throw new Error "the method you are calling requires a call to connection() before it"
+        return connection cb if 'function' is typeof connection
+        process.nextTick -> cb null, connection
+
+    # command
+    # -------
 
     insert: (data, cb) ->
         unless @_attributes?
@@ -51,14 +63,13 @@ module.exports =
         if Object.keys(cleanData).length is 0
             throw new Error 'nothing to insert'
 
-        m = @_mohair.insert cleanData
-        sql = @postgresPlaceholders m.sql() + " RETURNING #{@_primaryKey}"
-        params = m.params()
+        query = @_mohair.insert cleanData
+        sql = @replacePlaceholders query.sql() + " RETURNING #{@_primaryKey}"
 
         @getConnection (err, connection) ->
             return cb err if err?
 
-            connection.query sql, params, (err, results) ->
+            connection.query sql, query.params(), (err, results) ->
                 return cb err if err?
 
                 cb null, results.rows[0].id
@@ -67,54 +78,52 @@ module.exports =
         unless @_attributes?
             throw new Error 'insertMany() requires call to attributes() before it'
 
-        attributes = @_attributes
-        m = @_mohair.insert data.map (x) -> _.pick x, attributes
-        sql = @postgresPlaceholders m.sql() + " RETURNING #{@_primaryKey}"
-        params = m.params()
+        query = @_mohair.insert data.map (x) => _.pick x, @_attributes
+        sql = @replacePlaceholders query.sql() + " RETURNING #{@_primaryKey}"
 
         @getConnection (err, connection) ->
             return cb err if err?
 
-            connection.query sql, params, (err, results) ->
+            connection.query sql, query.params(), (err, results) ->
                 return cb err if err?
 
                 cb null, _.pluck results.rows, 'id'
 
     delete: (cb) ->
-        m = @_mohair.delete()
-        sql = @postgresPlaceholders m.sql()
-        params = m.params()
+        query = @_mohair.delete()
+        sql = @replacePlaceholders query.sql()
 
         @getConnection (err, connection) ->
             return cb err if err?
-            connection.query sql, params, cb
 
-    update: (data, cb) ->
+            connection.query sql, query.params(), cb
+
+    update: (updates, cb) ->
         unless @_attributes?
             throw new Error 'update() requires call to attributes() before it'
 
-        if Object.keys(data).length is 0
-            throw new Error 'empty updates'
+        cleanUpdates = _.pick updates, @_attributes
+        throw new Error 'nothing to update' if Object.keys(cleanUpdates).length is 0
 
-        m = @_mohair.update _.pick data, @_attributes
-        sql = @postgresPlaceholders m.sql()
-        params = m.params()
+        query =  @_mohair.update cleanUpdates
+        sql = @replacePlaceholders query.sql()
 
-        @getConnection (err, connection) =>
+        @getConnection (err, connection) ->
             return cb err if err?
-            connection.query sql, params, cb
 
-    # queries
-    # -------
+            connection.query sql, query.params(), cb
+
+    # query
+    # -----
 
     first: (cb) ->
-        sql = @postgresPlaceholders @_mohair.sql()
-        params = @_mohair.params()
+        query =  @_mohair
+        sql = @replacePlaceholders query.sql()
 
         @getConnection (err, connection) =>
             return cb err if err?
 
-            connection.query sql, params, (err, results) =>
+            connection.query sql, query.params(), (err, results) =>
                 return cb err if err?
 
                 item = results.rows[0]
@@ -126,13 +135,13 @@ module.exports =
                     cb null, withIncludes[0]
 
     find: (cb) ->
-        sql = @postgresPlaceholders @_mohair.sql()
-        params = @_mohair.params()
+        query =  @_mohair
+        sql = @replacePlaceholders query.sql()
 
         @getConnection (err, connection) =>
             return cb err if err?
 
-            connection.query sql, params, (err, results) =>
+            connection.query sql, query.params(), (err, results) =>
                 return cb err if err?
 
                 items = results.rows
@@ -145,20 +154,19 @@ module.exports =
                     cb null, withIncludes
 
     exists: (cb) ->
-        sql = @postgresPlaceholders @_mohair.sql()
-        params = @_mohair.params()
+        query =  @_mohair
+        sql = @replacePlaceholders query.sql()
 
-        @getConnection (err, connection) ->
+        @getConnection (err, connection) =>
             return cb err if err?
 
-            connection.query sql, params, (err, results) ->
+            connection.query sql, query.params(), (err, results) ->
                 return cb err if err?
+
                 cb null, results.rows.length isnt 0
 
-    # associations
-    # ------------
-
-    includes: (includes) -> @set '_includes', includes
+    # association
+    # -----------
 
     _addAssociation: (type, name, model, options) ->
         associations = _.extend {}, @_associations
@@ -181,36 +189,33 @@ module.exports =
         @_addAssociation 'hasAndBelongsToMany', name, model, options
 
     fetchIncludes: (connection, items, cb) ->
-        return cb null, items unless @_includes?
+        that = this
+        return cb null, items unless that._includes?
 
-        includeNames = Object.keys(@_includes)
+        includeNames = Object.keys that._includes
 
         throw new Error 'empty includes' if includeNames.length is 0
 
-        associations = @_associations
-        table = @_table
-        includes = @_includes
-
         includeNames.forEach (x) ->
-            unless associations? and associations[x]?
+            unless that._associations? and that._associations[x]?
                 throw new Error "no association: #{x}"
 
-        throw new Error 'no table set on model' unless table?
+        throw new Error 'no table set on model' unless that._table?
 
         fetchInclude = (includeName, cb) ->
 
-            assoc = associations[includeName]
+            association = that._associations[includeName]
 
             otherModel =
-                if 'function' is typeof assoc.model then assoc.model() else assoc.model
+                if 'function' is typeof association.model then association.model() else association.model
             otherTable = otherModel._table
             throw new Error 'no table set on associated model' unless otherTable?
 
             chain = otherModel.connection connection
 
             # fetch nested includes
-            if 'object' is typeof includes[includeName]
-                chain = chain.includes includes[includeName]
+            if 'object' is typeof that._includes[includeName]
+                chain = chain.includes that._includes[includeName]
 
             fetchDirect = (key, otherKey, filter, cb) ->
                 criterion = {}
@@ -224,32 +229,32 @@ module.exports =
                             x[otherKey] is item[key]
                     cb null, items
 
-            primaryKey = assoc.options?.primaryKey || 'id'
-            foreignKey = assoc.options?.foreignKey
+            primaryKey = association.options?.primaryKey || 'id'
+            foreignKey = association.options?.foreignKey
 
-            switch assoc.type
+            switch association.type
                 when 'hasOne'
-                    fetchDirect primaryKey, (foreignKey || "#{table}_id"), _.detect, cb
+                    fetchDirect primaryKey, (foreignKey || "#{that._table}_id"), _.detect, cb
                 when 'hasMany'
-                    fetchDirect primaryKey, (foreignKey || "#{table}_id"), _.filter, cb
+                    fetchDirect primaryKey, (foreignKey || "#{that._table}_id"), _.filter, cb
                 when 'belongsTo'
                     fetchDirect (foreignKey || "#{otherTable}_id"), primaryKey, _.detect, cb
                 when 'hasAndBelongsToMany'
-                    joinTable = assoc.options.joinTable
+                    joinTable = association.options.joinTable
                     throw new Error 'no join table' unless joinTable?
 
-                    foreignKey ?= "#{table}_id"
+                    foreignKey ?= "#{that._table}_id"
                     intersectionCriterion = {}
                     intersectionCriterion[foreignKey] = _.pluck items, primaryKey
                     m = mohair.table(joinTable).where(intersectionCriterion)
-                    sql = postgresPlaceholders m.sql()
+                    sql = that.replacePlaceholders m.sql()
                     connection.query sql, m.params(), (err, results) ->
                         return cb err if err?
 
                         intersection = results.rows
 
-                        otherPrimaryKey = assoc.options?.otherPrimaryKey || 'id'
-                        otherForeignKey = assoc.options?.otherForeignKey || "#{otherTable}_id"
+                        otherPrimaryKey = association.options?.otherPrimaryKey || 'id'
+                        otherForeignKey = association.options?.otherForeignKey || "#{otherTable}_id"
 
                         criterion = {}
                         criterion[otherPrimaryKey] =
@@ -265,10 +270,8 @@ module.exports =
                                     x[otherPrimaryKey] in otherPrimaryKeys
                             cb null, items
                 else
-                    throw new Error "unknown association type: #{assoc.type}"
+                    throw new Error "unknown association type: #{association.type}"
 
         async.forEachSeries includeNames, fetchInclude, (err) ->
             return cb err if err?
             cb null, items
-
-    postgresPlaceholders: postgresPlaceholders
