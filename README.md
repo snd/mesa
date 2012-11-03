@@ -1,6 +1,6 @@
 # mesa
 
-mesa provides easy access to data in a postgres database
+mesa greatly simplifies access to data in sql databases
 [![Build Status](https://travis-ci.org/snd/mesa.png)](https://travis-ci.org/snd/mesa)
 
 ### immutability
