@@ -234,14 +234,4 @@ user.insert {
 }, (err, userId) -> # ...
 ```
 
-### todo
-
-- better documentation
-- check that key arrays for getting assocations are not empty
-- more convincing usage examples
-- check more user errors
-- use underscore less
-- simplify association fetching code
-- support mysql
-
 ### license: MIT
