@@ -1,6 +1,19 @@
-mohair = require('mohair').escapeTableName((tableName) -> "\"#{tableName}\"")
 _ = require 'underscore'
 async = require 'async'
+mohair = require('mohair').escapeTableName((tableName) -> "\"#{tableName}\"")
+
+createCriterion = (pk, fk, records) ->
+    criterion = {}
+    criterion[fk] = _.unique _.pluck records, pk
+    return criterion
+
+setOneInclude = (name, pk, fk, records, associated) ->
+    records.forEach (record) ->
+        record[name] = _.detect associated, (x) -> record[fk] is x[pk]
+
+setManyIncludes = (name, pk, fk, records, associated) ->
+    records.forEach (record) ->
+        record[name] = _.filter associated, (x) -> record[fk] is x[pk]
 
 module.exports =
 
@@ -126,11 +139,11 @@ module.exports =
             connection.query sql, query.params(), (err, results) =>
                 return cb err if err?
 
-                item = results.rows[0]
+                record = results.rows[0]
 
-                return cb null, null if not item?
+                return cb null, null if not record?
 
-                @fetchIncludes connection, [item], (err, withIncludes) =>
+                @_getIncludes connection, [record], (err, withIncludes) =>
                     return cb err if err?
                     cb null, withIncludes[0]
 
@@ -144,11 +157,11 @@ module.exports =
             connection.query sql, query.params(), (err, results) =>
                 return cb err if err?
 
-                items = results.rows
+                records = results.rows
 
-                return cb null, [] if items.length is 0
+                return cb null, [] if records.length is 0
 
-                @fetchIncludes connection, items, (err, withIncludes) =>
+                @_getIncludes connection, records, (err, withIncludes) =>
                     return cb err if err?
 
                     cb null, withIncludes
@@ -168,110 +181,132 @@ module.exports =
     # association
     # -----------
 
-    _addAssociation: (type, name, model, options) ->
+    hasAssociated: (name, associationFun) ->
         associations = _.extend {}, @_associations
-        associations[name] =
-            type: type
-            model: model
-            options: options
+        associations[name] = associationFun
         @set '_associations', associations
 
-    hasOne: (name, model, options) ->
-        @_addAssociation 'hasOne', name, model, options
+    _getIncludes: (connection, records, cb) ->
+        unless @_includes? then return process.nextTick -> cb null, records
 
-    belongsTo: (name, model, options) ->
-        @_addAssociation 'belongsTo', name, model, options
+        keys = Object.keys @_includes
+
+        throw new Error 'empty includes' if keys.length is 0
+
+        keys.forEach (key) =>
+            unless @_associations? and @_associations[key]?
+                throw new Error "no association: #{key}"
+
+        getInclude = (key, cb) =>
+            @_associations[key] connection, @_includes[key], records, cb
+
+        async.forEachSeries keys, getInclude, (err) =>
+            return cb err if err?
+            cb null, records
+
+    hasOne: (name, model, options) ->
+        @hasAssociated name, (connection, subIncludes, records, cb) =>
+            if 'function' is typeof model then model = model()
+            model = model.connection connection
+            model = model.includes subIncludes if 'object' is typeof subIncludes
+
+            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on associated model' unless model._table?
+
+            primaryKey = options?.primaryKey || @_primaryKey
+            foreignKey = options?.foreignKey || "#{@_table}_#{@_primaryKey}"
+
+            criterion = createCriterion primaryKey, foreignKey, records
+
+            model.where(criterion).find (err, associated) ->
+                return cb err if err?
+                setOneInclude name, foreignKey, primaryKey, records, associated
+                cb null, records
 
     hasMany: (name, model, options) ->
-        @_addAssociation 'hasMany', name, model, options
+        @hasAssociated name, (connection, subIncludes, records, cb) =>
+            if 'function' is typeof model then model = model()
+            model = model.connection connection
+            model = model.includes subIncludes if 'object' is typeof subIncludes
+
+            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on associated model' unless model._table?
+
+            primaryKey = options?.primaryKey || @_primaryKey
+            foreignKey = options?.foreignKey || "#{@_table}_#{@_primaryKey}"
+
+            criterion = createCriterion primaryKey, foreignKey, records
+
+            model.where(criterion).find (err, associated) ->
+                return cb err if err?
+                setManyIncludes name, foreignKey, primaryKey, records, associated
+                cb null, records
+
+    belongsTo: (name, model, options) ->
+        @hasAssociated name, (connection, subIncludes, records, cb) =>
+            if 'function' is typeof model then model = model()
+            model = model.connection connection
+
+            getSingleStepInclude records, subIncludes, model,
+                (options?.foreignKey || "#{model._table}_#{model._primaryKey}")
+                (options?.primaryKey || @_primaryKey)
+                _.detect
+                cb
+
+        @hasAssociated name, (connection, subIncludes, records, cb) =>
+            if 'function' is typeof model then model = model()
+            model = model.connection connection
+            model = model.includes subIncludes if 'object' is typeof subIncludes
+
+            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on associated model' unless model._table?
+
+            primaryKey = options?.primaryKey || @_primaryKey
+            foreignKey = options?.foreignKey || "#{model._table}_#{model._primaryKey}"
+
+            criterion = createCriterion foreignKey, primaryKey, records
+
+            model.where(criterion).find (err, associated) ->
+                return cb err if err?
+                setOneInclude name, primaryKey, foreignKey, records, associated
+                cb null, records
 
     hasAndBelongsToMany: (name, model, options) ->
-        @_addAssociation 'hasAndBelongsToMany', name, model, options
+        @hasAssociated name, (connection, subIncludes, records, cb) =>
+            if 'function' is typeof model then model = model()
+            model = model.connection connection
 
-    fetchIncludes: (connection, items, cb) ->
-        that = this
-        return cb null, items unless that._includes?
+            joinTable = options?.joinTable
+            throw new Error 'no join table' unless joinTable?
 
-        includeNames = Object.keys that._includes
+            primaryKey = options.primaryKey || @_primaryKey
+            foreignKey = options.foreignKey || "#{@_table}_#{@_primaryKey}"
 
-        throw new Error 'empty includes' if includeNames.length is 0
+            otherPrimaryKey = options.otherPrimaryKey || model._primaryKey
+            otherForeignKey = options.otherForeignKey || "#{model._table}_#{model._primaryKey}"
 
-        includeNames.forEach (x) ->
-            unless that._associations? and that._associations[x]?
-                throw new Error "no association: #{x}"
+            intersectionCriterion =
+                createCriterion primaryKey, foreignKey, records
 
-        throw new Error 'no table set on model' unless that._table?
+            query = mohair.table(joinTable).where(intersectionCriterion)
+            sql = @replacePlaceholders query.sql()
 
-        fetchInclude = (includeName, cb) ->
+            connection.query sql, query.params(), (err, results) ->
+                return cb err if err?
 
-            association = that._associations[includeName]
+                intersection = results.rows
 
-            otherModel =
-                if 'function' is typeof association.model then association.model() else association.model
-            otherTable = otherModel._table
-            throw new Error 'no table set on associated model' unless otherTable?
+                criterion =
+                    createCriterion otherForeignKey, otherPrimaryKey, intersection
 
-            chain = otherModel.connection connection
-
-            # fetch nested includes
-            if 'object' is typeof that._includes[includeName]
-                chain = chain.includes that._includes[includeName]
-
-            fetchDirect = (key, otherKey, filter, cb) ->
-                criterion = {}
-                criterion[otherKey] = _.unique _.pluck items, key
-
-                chain.where(criterion).find (err, associated) ->
+                model.where(criterion).find (err, associated) ->
                     return cb err if err?
 
-                    items.forEach (item) ->
-                        item[includeName] = filter associated, (x) ->
-                            x[otherKey] is item[key]
-                    cb null, items
+                    records.forEach (record) ->
+                        relevantIntersection = _.filter intersection, (x) ->
+                            x[foreignKey] is record[primaryKey]
+                        otherPrimaryKeys = _.pluck relevantIntersection, otherForeignKey
+                        record[name] = associated.filter (x) ->
+                            x[otherPrimaryKey] in otherPrimaryKeys
 
-            primaryKey = association.options?.primaryKey || 'id'
-            foreignKey = association.options?.foreignKey
-
-            switch association.type
-                when 'hasOne'
-                    fetchDirect primaryKey, (foreignKey || "#{that._table}_id"), _.detect, cb
-                when 'hasMany'
-                    fetchDirect primaryKey, (foreignKey || "#{that._table}_id"), _.filter, cb
-                when 'belongsTo'
-                    fetchDirect (foreignKey || "#{otherTable}_id"), primaryKey, _.detect, cb
-                when 'hasAndBelongsToMany'
-                    joinTable = association.options.joinTable
-                    throw new Error 'no join table' unless joinTable?
-
-                    foreignKey ?= "#{that._table}_id"
-                    intersectionCriterion = {}
-                    intersectionCriterion[foreignKey] = _.pluck items, primaryKey
-                    m = mohair.table(joinTable).where(intersectionCriterion)
-                    sql = that.replacePlaceholders m.sql()
-                    connection.query sql, m.params(), (err, results) ->
-                        return cb err if err?
-
-                        intersection = results.rows
-
-                        otherPrimaryKey = association.options?.otherPrimaryKey || 'id'
-                        otherForeignKey = association.options?.otherForeignKey || "#{otherTable}_id"
-
-                        criterion = {}
-                        criterion[otherPrimaryKey] =
-                            _.unique _.pluck intersection, otherForeignKey
-
-                        chain.where(criterion).find (err, associated) ->
-                            return cb err if err?
-                            items.forEach (item) ->
-                                relevantIntersection = _.filter intersection, (x) ->
-                                    x[foreignKey] is item[primaryKey]
-                                otherPrimaryKeys = _.pluck relevantIntersection, otherForeignKey
-                                item[includeName] = associated.filter (x) ->
-                                    x[otherPrimaryKey] in otherPrimaryKeys
-                            cb null, items
-                else
-                    throw new Error "unknown association type: #{association.type}"
-
-        async.forEachSeries includeNames, fetchInclude, (err) ->
-            return cb err if err?
-            cb null, items
+                    cb null, records
