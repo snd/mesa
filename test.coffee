@@ -595,7 +595,6 @@ module.exports =
                 userModel = mesa
                     .connection(-> test.fail())
                     .table('user')
-                    # .hasOne('billing_address')
 
                 addressModel = mesa
                     .connection(connection)
