@@ -246,16 +246,6 @@ module.exports =
         @hasAssociated name, (connection, subIncludes, records, cb) =>
             if 'function' is typeof model then model = model()
             model = model.connection connection
-
-            getSingleStepInclude records, subIncludes, model,
-                (options?.foreignKey || "#{model._table}_#{model._primaryKey}")
-                (options?.primaryKey || @_primaryKey)
-                _.detect
-                cb
-
-        @hasAssociated name, (connection, subIncludes, records, cb) =>
-            if 'function' is typeof model then model = model()
-            model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
 
             throw new Error 'no table set on model' unless @_table?
