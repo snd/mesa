@@ -265,6 +265,10 @@ module.exports =
         @hasAssociated name, (connection, subIncludes, records, cb) =>
             if 'function' is typeof model then model = model()
             model = model.connection connection
+            model = model.includes subIncludes if 'object' is typeof subIncludes
+
+            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on associated model' unless model._table?
 
             joinTable = options?.joinTable
             throw new Error 'no join table' unless joinTable?
