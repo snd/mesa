@@ -94,7 +94,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'INSERT INTO "user"(name, email) VALUES ($1, $2) RETURNING id'
+                    test.equal sql, 'INSERT INTO "user"("name", "email") VALUES ($1, $2) RETURNING id'
                     test.deepEqual params, ['foo', 'foo@example.com']
                     cb null, {rows: [{id: 3}]}
 
@@ -114,7 +114,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'INSERT INTO "user"(name, email) VALUES ($1, $2), ($3, $4) RETURNING id'
+                    test.equal sql, 'INSERT INTO "user"("name", "email") VALUES ($1, $2), ($3, $4) RETURNING id'
                     test.deepEqual params, ['foo', 'foo@example.com', 'bar', 'bar@example.com']
                     cb null, {rows: [{id: 3}, {id: 4}]}
 
@@ -153,7 +153,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'UPDATE "user" SET name = $1, email = $2 WHERE id = $3 AND name = $4'
+                    test.equal sql, 'UPDATE "user" SET "name" = $1, "email" = $2 WHERE id = $3 AND name = $4'
                     test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo']
                     cb()
 
@@ -287,7 +287,7 @@ module.exports =
                             test.deepEqual params, []
                             cb()
                         when 2
-                            test.equal sql, 'INSERT INTO "user"(name, email) VALUES ($1, $2) RETURNING id'
+                            test.equal sql, 'INSERT INTO "user"("name", "email") VALUES ($1, $2) RETURNING id'
                             test.deepEqual params, ['foo', 'foo@example.com']
                             cb null, {rows: [{id: 200}]}
                         when 3
