@@ -1,6 +1,6 @@
 _ = require 'underscore'
 async = require 'async'
-mohair = require('mohair').escapeTableName((tableName) -> "\"#{tableName}\"")
+mohair = require('mohair').escape((string) -> "\"#{string}\"")
 
 createCriterion = (pk, fk, records) ->
     criterion = {}
