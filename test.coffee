@@ -108,6 +108,55 @@ module.exports =
                 test.equal id, 3
                 test.done()
 
+        'insert with custom primaryKey': (test) ->
+
+            test.expect 3
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'INSERT INTO "user"("name", "email") VALUES ($1, $2) RETURNING my_id'
+                    test.deepEqual params, ['foo', 'foo@example.com']
+                    cb null, {rows: [{id: 3, my_id: 5}]}
+
+            userModel = mesa
+                .connection(connection)
+                .table('user')
+                .attributes(['name', 'email'])
+
+            userModel
+                .primaryKey('my_id')
+                .insert {name: 'foo', email: 'foo@example.com', x: 5}, (err, id) ->
+                    throw err if err?
+                    test.equal id, 5
+                    test.done()
+
+        'insert with returning': (test) ->
+
+            test.expect 3
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'INSERT INTO "user"("name", "email") VALUES ($1, $2) RETURNING *'
+                    test.deepEqual params, ['foo', 'foo@example.com']
+                    cb null, {rows: [{id: 3, name: 'foo', email: 'foo@example.com'}]}
+
+            userModel = mesa
+                .connection(connection)
+                .table('user')
+                .attributes(['name', 'email'])
+
+            userModel
+                .primaryKey('my_id')
+                .returning('*')
+                .insert {name: 'foo', email: 'foo@example.com', x: 5}, (err, record) ->
+                    throw err if err?
+                    test.deepEqual record,
+                        id: 3
+                        name: 'foo'
+                        email: 'foo@example.com'
+
+                    test.done()
+
         'insert multiple records': (test) ->
 
             test.expect 3
@@ -166,6 +215,28 @@ module.exports =
 
             userModel.where(id: 3).where(name: 'foo').update updates, (err) ->
                 throw err if err?
+                test.done()
+
+        'update with returning': (test) ->
+            test.expect 3
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'UPDATE "user" SET "name" = $1, "email" = $2 WHERE id = $3 AND name = $4 RETURNING *'
+                    test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo']
+                    cb null, {rows: [{id: 3}, {id: 4}]}
+
+            userModel = mesa
+                .connection(connection)
+                .table('user')
+                .returning('*')
+                .attributes(['name', 'email'])
+
+            updates = {name: 'bar', x: 5, y: 8, email: 'bar@example.com'}
+
+            userModel.where(id: 3).where(name: 'foo').update updates, (err, results) ->
+                throw err if err?
+                test.deepEqual results, [{id: 3}, {id: 4}]
                 test.done()
 
     'query':
