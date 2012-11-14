@@ -45,6 +45,10 @@ module.exports =
     attributes: (arg) -> @set '_attributes', arg
     primaryKey: (arg) -> @set '_primaryKey', arg
     includes: (arg) -> @set '_includes', arg
+    returning: (arg) ->
+        throw new Error 'must be a string' unless 'string' is typeof arg
+        throw new Error 'must not be the empty string' if arg.length is 0
+        @set '_returning', arg
 
     where: (args...) -> @set '_mohair', @_mohair.where args...
     join: (args...) -> @set '_mohair', @_mohair.join args...
@@ -77,30 +81,34 @@ module.exports =
             throw new Error 'nothing to insert'
 
         query = @_mohair.insert cleanData
-        sql = @replacePlaceholders query.sql() + " RETURNING #{@_primaryKey}"
+        returning = if @_returning then @_returning else @_primaryKey
+        sql = @replacePlaceholders query.sql() + " RETURNING #{returning}"
 
-        @getConnection (err, connection) ->
+        @getConnection (err, connection) =>
             return cb err if err?
 
-            connection.query sql, query.params(), (err, results) ->
+            connection.query sql, query.params(), (err, results) =>
                 return cb err if err?
 
-                cb null, results.rows[0].id
+                row = results.rows[0]
+
+                cb null, if @_returning? then row else row[@_primaryKey]
 
     insertMany: (data, cb) ->
         unless @_attributes?
             throw new Error 'insertMany() requires call to attributes() before it'
 
         query = @_mohair.insert data.map (x) => _.pick x, @_attributes
-        sql = @replacePlaceholders query.sql() + " RETURNING #{@_primaryKey}"
+        returning = if @_returning then @_returning else @_primaryKey
+        sql = @replacePlaceholders query.sql() + " RETURNING #{returning}"
 
-        @getConnection (err, connection) ->
+        @getConnection (err, connection) =>
             return cb err if err?
 
-            connection.query sql, query.params(), (err, results) ->
+            connection.query sql, query.params(), (err, results) =>
                 return cb err if err?
 
-                cb null, _.pluck results.rows, 'id'
+                cb null, if @_returning? then results.rows else _.pluck results.rows, @_primaryKey
 
     delete: (cb) ->
         query = @_mohair.delete()
@@ -120,11 +128,15 @@ module.exports =
 
         query =  @_mohair.update cleanUpdates
         sql = @replacePlaceholders query.sql()
+        sql += " RETURNING #{@_returning}" if @_returning?
 
-        @getConnection (err, connection) ->
+        @getConnection (err, connection) =>
             return cb err if err?
 
-            connection.query sql, query.params(), cb
+            connection.query sql, query.params(), (err, results) =>
+                return cb err if err?
+                return cb() unless @_returning?
+                return cb null, results.rows
 
     # query
     # -----
