@@ -30,6 +30,7 @@ user = mesa
     .table('user')
     .connection(getConnection)
     .attributes(['name', 'email'])
+    .primaryKey('my_id') # optional, defaults to 'id'
 ```
 
 `connection()` either takes a connection object or a function, which is supposed to take a
