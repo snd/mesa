@@ -302,6 +302,8 @@ module.exports =
 
                 intersection = results.rows
 
+                return cb null, records if intersection.length is 0
+
                 criterion =
                     createCriterion otherForeignKey, otherPrimaryKey, intersection
 

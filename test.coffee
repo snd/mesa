@@ -1025,3 +1025,55 @@ module.exports =
                         }
 
                     test.done()
+
+        'hasAndBelongsToMany works if there are no associated': (test) ->
+            test.expect 5
+
+            call = 1
+
+            connection =
+                query: (sql, params, cb) ->
+                    switch call++
+                        when 1
+                            test.equal sql, 'SELECT * FROM "user"'
+                            test.deepEqual params, []
+                            cb null, {rows: [
+                                {name: 'foo', id: 3}
+                                {name: 'bar', id: 4}
+                                {name: 'baz', id: 5}
+                            ]}
+                        when 2
+                            test.equal sql, 'SELECT * FROM "user_role" WHERE user_id IN ($1, $2, $3)'
+                            test.deepEqual params, [3, 4, 5]
+                            cb null, {rows: []}
+
+            roleModel = mesa
+                .connection(connection)
+                .table('role')
+
+            userModel = mesa
+                .connection(connection)
+                .table('user')
+                .hasAndBelongsToMany('roles', roleModel,
+                    joinTable: 'user_role'
+                )
+
+            userModel
+                .includes(roles: true)
+                .find (err, users) ->
+                    test.deepEqual users, [
+                        {
+                            name: 'foo'
+                            id: 3
+                        }
+                        {
+                            name: 'bar'
+                            id: 4
+                        }
+                        {
+                            name: 'baz'
+                            id: 5
+                        }
+                    ]
+
+                    test.done()
