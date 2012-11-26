@@ -2,7 +2,7 @@
     "name": "mesa",
     "description": "mesa provides easy access to postgres databases",
     "author": "Maximilian Krüger <kruemaxi@googlemail.com> (http://github.com/snd)",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "repository": {
         "type": "git",
         "url": "git://github.com/snd/mesa.git"
