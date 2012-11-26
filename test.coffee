@@ -185,7 +185,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'DELETE FROM "user" WHERE id = $1 AND name = $2'
+                    test.equal sql, 'DELETE FROM "user" WHERE (id = $1) AND (name = $2)'
                     test.deepEqual params, [3, 'foo']
                     cb()
 
@@ -202,7 +202,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'UPDATE "user" SET "name" = $1, "email" = $2 WHERE id = $3 AND name = $4'
+                    test.equal sql, 'UPDATE "user" SET "name" = $1, "email" = $2 WHERE (id = $3) AND (name = $4)'
                     test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo']
                     cb()
 
@@ -222,7 +222,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'UPDATE "user" SET "name" = $1, "email" = $2 WHERE id = $3 AND name = $4 RETURNING *'
+                    test.equal sql, 'UPDATE "user" SET "name" = $1, "email" = $2 WHERE (id = $3) AND (name = $4) RETURNING *'
                     test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo']
                     cb null, {rows: [{id: 3}, {id: 4}]}
 
@@ -300,7 +300,7 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'SELECT user.*, count(project.id) AS project_count FROM "user" JOIN project ON user.id = project.user_id WHERE id = $1 AND name = $2 GROUP BY user.id ORDER BY created DESC, name ASC LIMIT $3 OFFSET $4'
+                    test.equal sql, 'SELECT user.*, count(project.id) AS project_count FROM "user" JOIN project ON user.id = project.user_id WHERE (id = $1) AND (name = $2) GROUP BY user.id ORDER BY created DESC, name ASC LIMIT $3 OFFSET $4'
                     test.deepEqual params, [3, 'foo', 10, 20]
                     cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
 
