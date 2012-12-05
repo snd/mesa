@@ -1,17 +1,33 @@
 {
     "name": "mesa",
-    "description": "mesa provides easy access to postgres databases",
-    "author": "Maximilian Krüger <kruemaxi@googlemail.com> (http://github.com/snd)",
     "version": "0.4.5",
+    "description": "mesa provides easy access to postgres databases",
+    "homepage": "http://github.com/snd/mesa",
+    "author": {
+        "name": "Maximilian Krüger",
+        "email": "kruemaxi@gmail.com",
+        "url": "http://github.com/snd"
+    },
+    "bugs": {
+        "url": "http://github.com/snd/mesa/issues",
+        "email": "kruemaxi@gmail.com"
+    },
     "repository": {
         "type": "git",
         "url": "git://github.com/snd/mesa.git"
+    },
+    "licenses": {
+        "type": "MIT",
+        "url": "git://github.com/snd/mesa/LICENSE"
+    },
+    "engines": {
+        "node": ">=0.8.5"
     },
     "dependencies": {
         "coffee-script": "1.4.0",
         "mohair": "0.9.2",
         "async": "0.1.22",
-        "underscore": "1.4.2"
+        "underscore": "1.4.3"
     },
     "devDependencies": {
         "nodeunit": "0.7.4"
