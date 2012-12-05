@@ -1,15 +1,14 @@
 # mesa
 
-mesa provides easy access to postgres databases
 [![Build Status](https://travis-ci.org/snd/mesa.png)](https://travis-ci.org/snd/mesa)
+
+mesa provides easy access to postgres databases
 
 ### immutability
 
-mesa objects are immutable.
-no method call ever changes the state of the mesa object it is called on.
-
 every call to a chainable configuration method (`table`, `connection`, `attributes`, `where`, ...)
 returns a new mesa object.
+no method call ever changes the state of the mesa object it is called on.
 
 ### install
 
