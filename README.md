@@ -4,11 +4,8 @@
 
 mesa provides easy access to postgres databases
 
-### immutability
-
-no method call ever changes the state of the mesa object it is called on.
 every call to a chainable configuration method (`table`, `connection`, `attributes`, `where`, ...)
-returns a new mesa object.
+returns a new mesa object and doesn't change the state of the mesa object it is called on.
 
 ### install
 
