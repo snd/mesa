@@ -25,7 +25,7 @@
     },
     "dependencies": {
         "coffee-script": "1.4.0",
-        "mohair": "0.9.2",
+        "mohair": "0.9.3",
         "async": "0.1.22",
         "underscore": "1.4.3"
     },
