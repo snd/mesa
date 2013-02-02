@@ -135,7 +135,7 @@ module.exports =
 
             connection.query sql, query.params(), (err, results) =>
                 return cb err if err?
-                return cb() unless @_returning?
+                return cb null, results unless @_returning?
                 return cb null, results.rows
 
     # query
