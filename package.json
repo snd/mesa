@@ -24,7 +24,7 @@
         "node": ">=0.8.5"
     },
     "dependencies": {
-        "coffee-script": "1.4.0",
+        "coffee-script": "1.5.0",
         "mohair": "0.9.4",
         "async": "0.1.22",
         "underscore": "1.4.3"
