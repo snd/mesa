@@ -302,6 +302,8 @@ module.exports =
 
                 intersection = results.rows
 
+                records.forEach (record) -> record[name] = []
+
                 return cb null, records if intersection.length is 0
 
                 criterion =
