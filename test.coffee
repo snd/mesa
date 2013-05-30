@@ -1065,14 +1065,17 @@ module.exports =
                         {
                             name: 'foo'
                             id: 3
+                            roles: []
                         }
                         {
                             name: 'bar'
                             id: 4
+                            roles: []
                         }
                         {
                             name: 'baz'
                             id: 5
+                            roles: []
                         }
                     ]
 
