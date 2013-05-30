@@ -1,6 +1,6 @@
 {
     "name": "mesa",
-    "version": "0.4.9",
+    "version": "0.4.10",
     "description": "mesa provides easy access to postgres databases",
     "homepage": "http://github.com/snd/mesa",
     "author": {
