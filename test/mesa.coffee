@@ -1,6 +1,6 @@
 _ = require 'underscore'
 
-mesa = require './index'
+mesa = require '../src/mesa'
 
 module.exports =
 
