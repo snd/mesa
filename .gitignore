@@ -1,6 +1,6 @@
 **.DS_Store
 node_modules/**
 npm-debug.log
-raw.md
-todo.md
-use-cases.md
+src/*.js
+test/*.js
+text.md
