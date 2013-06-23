@@ -306,6 +306,7 @@ userTable.getConnection(function(err, connection, done) {
             .insert({name: 'alice'}, function(err, id) {
                 // run more commands in the transaction
                 // possibly on other tables
+                done();
             });
     });
 });
