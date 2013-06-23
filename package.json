@@ -25,7 +25,7 @@
         "node": ">=0.8.5"
     },
     "dependencies": {
-        "mohair": "0.10.2",
+        "mohair": "0.10.3",
         "q": "0.9.6",
         "underscore": "1.4.4"
     },
