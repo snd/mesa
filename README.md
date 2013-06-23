@@ -13,10 +13,11 @@ it adds the ability to execute these queries, to declare and include
 associations (`hasOne`, `belongsTo`, `hasMany`, `hasAndBelongsToMany`) and more.
 
 mesa has been battle tested in a medium sized (8 heroku dynos) production environment
-for half a year now.
+for half a year.
 
 mesa uses criterion for sql-where-conditions.
-[look here for further documentation](https://github.com/snd/criterion)
+consult the [criterion readme](https://github.com/snd/criterion)
+and [mohair readme](https://github.com/snd/mohair) to get the full picture of what is possible with mesa.
 
 ### install
 
@@ -38,7 +39,7 @@ var mesa = require('mesa');
 
 #### connections
 
-**mesa only works with ([node-postgres](https://github.com/brianc/node-postgres) at the moment**
+**mesa only works with [node-postgres](https://github.com/brianc/node-postgres) at the moment**
 
 tell mesa how to get a connection from the pool:
 
@@ -72,7 +73,7 @@ var userTable = mesaWithConnection.table('user');
 
 ```javascript
 userTable.
-    .attributes(['name‘])
+    .attributes(['name'])
     .insert({
         name: 'alice'
     }, function(err, id) {
