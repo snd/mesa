@@ -62,3 +62,79 @@ module.exports =
             userModel.delete (err) ->
                 throw err if err?
                 test.done()
+
+        'done is called on first when a record is returned': (test) ->
+            test.expect 1
+
+            getConnection = (cb) ->
+                process.nextTick ->
+                    done = -> test.ok true
+                    connection =
+                        query: (sql, params, cb) ->
+                            cb null, {rows: [{x: 1}]}
+                    cb null, connection, done
+
+            userModel = mesa
+                .connection(getConnection)
+                .table('user')
+
+            userModel.first (err) ->
+                throw err if err?
+                test.done()
+
+        'done is called on first when no record is returned': (test) ->
+            test.expect 1
+
+            getConnection = (cb) ->
+                process.nextTick ->
+                    done = -> test.ok true
+                    connection =
+                        query: (sql, params, cb) ->
+                            cb null, {rows: []}
+                    cb null, connection, done
+
+            userModel = mesa
+                .connection(getConnection)
+                .table('user')
+
+            userModel.first (err) ->
+                throw err if err?
+                test.done()
+
+        'done is called on find when a record is returned': (test) ->
+            test.expect 1
+
+            getConnection = (cb) ->
+                process.nextTick ->
+                    done = -> test.ok true
+                    connection =
+                        query: (sql, params, cb) ->
+                            cb null, {rows: [{x: 1}]}
+                    cb null, connection, done
+
+            userModel = mesa
+                .connection(getConnection)
+                .table('user')
+
+            userModel.find (err) ->
+                throw err if err?
+                test.done()
+
+        'done is called on find when no records are returned': (test) ->
+            test.expect 1
+
+            getConnection = (cb) ->
+                process.nextTick ->
+                    done = -> test.ok true
+                    connection =
+                        query: (sql, params, cb) ->
+                            cb null, {rows: []}
+                    cb null, connection, done
+
+            userModel = mesa
+                .connection(getConnection)
+                .table('user')
+
+            userModel.find (err) ->
+                throw err if err?
+                test.done()
