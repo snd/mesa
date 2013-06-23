@@ -152,7 +152,6 @@ userTable.where({id: 3}).exists(function(err, exists) {
 
 ```javascript
 userTable.where({id: 3}).find(function(err, user) {
-
 });
 ```
 
@@ -169,7 +168,6 @@ userTable
     .limit(10)
     .offset(20)
     .find(function(err, users) {
-
     });
 ```
 
