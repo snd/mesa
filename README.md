@@ -100,7 +100,7 @@ userTable
 
 ```javascript
 userTable.
-    .attributes(['name‘, 'created'])
+    .attributes(['name', 'created'])
     .insert({
         name: 'alice'
         created: userTable.raw('NOW()')
