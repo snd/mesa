@@ -259,6 +259,34 @@ module.exports =
                 test.deepEqual results, [{id: 3}, {id: 4}]
                 test.done()
 
+        'update with raw': (test) ->
+            test.expect 2
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'UPDATE "user" SET "id" = LOG($1, $2), "name" = $3 WHERE (id = LOG($4, $5)) AND (name = $6)'
+                    test.deepEqual params, [7, 8, 'bar', 11, 12, 'foo']
+                    cb()
+
+            userModel = mesa
+                .connection(connection)
+                .table('user')
+                .attributes(['id', 'name'])
+
+            updates =
+                name: 'bar'
+                id: userModel.raw('LOG(?, ?)', 7, 8)
+                x: 5
+                y: 8
+                email: 'bar@example.com'
+
+            userModel
+                .where(id: userModel.raw('LOG(?, ?)', 11, 12))
+                .where(name: 'foo')
+                .update updates, (err) ->
+                    throw err if err?
+                    test.done()
+
     'query':
 
         'find all': (test) ->
