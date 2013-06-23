@@ -260,9 +260,9 @@ userTable
 ##### extending mesa's fluent interface
 
 every mesa object prototypically inherits from the object
-it was created from.
+before it in the fluent call chain.
 
-this means that every object in the chain is very lightweight since
+this means that every mesa object is very lightweight since
 it shares structure with objects before it in the fluent call chain.
 
 it also makes it very easy to extend mesa's fluent interface:
