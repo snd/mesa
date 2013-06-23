@@ -1,6 +1,6 @@
 _ = require 'underscore'
 
-mesa = require '../src/mesa'
+mesa = require '../src/postgres'
 
 module.exports =
 
@@ -415,6 +415,7 @@ module.exports =
                     .includes(billing_address: true)
                     .where(id: 3)
                     .first (err, user) ->
+                        throw err if err?
                         test.deepEqual user,
                             name: 'foo'
                             id: 3
@@ -462,6 +463,7 @@ module.exports =
                     .includes(person: true)
                     .where(id: 3)
                     .first (err, address) ->
+                        throw err if err?
                         test.deepEqual address,
                             street: 'foo street'
                             zip_code: 12345
@@ -510,6 +512,7 @@ module.exports =
                     .includes(tasks: true)
                     .where(id: 3)
                     .first (err, user) ->
+                        throw err if err?
                         test.deepEqual user,
                             name: 'foo'
                             id: 3
@@ -569,6 +572,7 @@ module.exports =
                     .includes(roles: true)
                     .where(id: 3)
                     .first (err, user) ->
+                        throw err if err?
                         test.deepEqual user,
                             name: 'foo'
                             id: 3
