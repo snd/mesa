@@ -43,3 +43,22 @@ module.exports =
             userModel.update {name: 'foo'}, (err) ->
                 throw err if err?
                 test.done()
+
+        'done is called on delete': (test) ->
+            test.expect 1
+
+            getConnection = (cb) ->
+                process.nextTick ->
+                    done = -> test.ok true
+                    connection =
+                        query: (sql, params, cb) ->
+                            cb()
+                    cb null, connection, done
+
+            userModel = mesa
+                .connection(getConnection)
+                .table('user')
+
+            userModel.delete (err) ->
+                throw err if err?
+                test.done()
