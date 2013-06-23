@@ -271,7 +271,7 @@ it also makes it very easy to extend mesa's fluent interface:
 var userTable = mesa.table('user');
 
 userTable.activeAdmins = function() {
-    return this.where(visible: true, role: 'admin');
+    return this.where({visible: true, role: 'admin'});
 };
 
 userTable.whereCreatedBetween = function(from, to) {
