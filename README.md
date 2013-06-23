@@ -54,7 +54,6 @@ var mesaWithConnection = mesa.connection(function(cb) {
 
 `mesaWithConnection` will now use the provided function to get connections
 for the commands you execute.
-
 these connections are under mesa's control.
 mesa will [properly call done()](https://github.com/brianc/node-postgres/wiki/pg#connectfunction-callback) on every connection it has obtained from the
 pool.
