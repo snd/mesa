@@ -108,6 +108,26 @@ module.exports =
                 test.equal id, 3
                 test.done()
 
+        'insert with raw': (test) ->
+
+            test.expect 3
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'INSERT INTO "user"("name", "id") VALUES ($1, LOG($2, $3)) RETURNING id'
+                    test.deepEqual params, ['foo', 3, 4]
+                    cb null, {rows: [{id: 3}]}
+
+            userModel = mesa
+                .connection(connection)
+                .table('user')
+                .attributes(['name', 'id'])
+
+            userModel.insert {name: 'foo', id: userModel.raw('LOG(?, ?)', 3, 4)}, (err, id) ->
+                throw err if err?
+                test.equal id, 3
+                test.done()
+
         'insert with custom primaryKey': (test) ->
 
             test.expect 3
