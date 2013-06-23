@@ -304,9 +304,13 @@ userTable.getConnection(function(err, connection, done) {
             // use the transactional connection explicitely
             .connection(connection)
             .insert({name: 'alice'}, function(err, id) {
+
                 // run more commands in the transaction
                 // possibly on other tables
-                done();
+
+                connection.query('COMMIT', function(err) {
+                    done();
+                });
             });
     });
 });
