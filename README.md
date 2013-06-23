@@ -55,7 +55,7 @@ var mesaWithConnection = mesa.connection(function(cb) {
 `mesaWithConnection` will now use the provided function to get connections
 for the commands you execute.
 
-these connections are under mesas control.
+these connections are under mesa's control.
 mesa will [properly call done()](https://github.com/brianc/node-postgres/wiki/pg#connectfunction-callback) on every connection it has obtained from the
 pool.
 
@@ -125,7 +125,7 @@ specify where conditions in mesa.
 ```javascript
 userTable
     .where({id: 3})
-    .where({name: 'alice')
+    .where({name: 'alice'})
     .update({name: 'bob'}, function(err) {
     });
 ```
@@ -140,8 +140,6 @@ multiple calls to `where` are anded together.
 userTable.where({id: 3}).first(function(err, user) {
 });
 ```
-
-`where` can take any valid [criterion](https://github.com/snd/criterion)
 
 ##### test for existence
 
@@ -188,14 +186,14 @@ var userTable = userTable.hasOne('address', addressTable, {
 });
 ```
 
-the second argument can be a function which must return a model.
-this can be used to resolve models which are not yet created when the association
+the second argument can be a function which must return a mesa object.
+this can be used to resolve tables which are not yet created when the association
 is defined.
 it's also a way to do self associations.
 
 ##### belongs to
 
-use `belongsTo` if the foreign key is in the table of the model that `belongsTo`
+use `belongsTo` if the foreign key is in the table that `belongsTo`
 is called on (`projectTable` in this example)
 
 ```javascript
@@ -227,7 +225,7 @@ var userTable = userTable.hasAndBelongsToMany('projects', projectTable, {
     primaryKey: 'id',               // optional with default: 'id'
     foreignKey: 'user_id',          // optional with default: userTable.getTable() + '_id'
     otherPrimaryKey: 'id',          // optional with default: 'id'
-    otherForeignKey: 'project_id'   // optional with default: project.getTable() + '_id'
+    otherForeignKey: 'project_id'   // optional with default: projectTable.getTable() + '_id'
 });
 ```
 
@@ -259,16 +257,13 @@ userTable
 
 ### advanced use
 
-##### extending mesas fluent interface
-
-mesa has a fluent interface where every method returns a new object.
-no method ever changes the state of the object it is called on.
+##### extending mesa's fluent interface
 
 every mesa object prototypically inherits from the object
 it was created from.
 
 this means that every object in the chain is very lightweight since
-it shares structure with objects before it in the prototype chain.
+it shares structure with objects before it in the fluent call chain.
 
 it also makes it very easy to extend mesa's fluent interface:
 
