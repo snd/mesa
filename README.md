@@ -82,13 +82,13 @@ userTable.
 
 `attributes()` sets the properties to pick from data in the `create()` and `update()`
 methods. `attributes()` prevents mass assignment
-and must be called before calling the `create()` or `update()` methods.
+and must be called before using the `create()` or `update()` methods.
 
 ##### insert multiple records
 
 ```javascript
 userTable
-    .attributes(['name‘])
+    .attributes(['name'])
     .insertMany([
         {name: 'alice'},
         {name: 'bob'}
@@ -117,9 +117,8 @@ userTable.where({id: 3}).delete(function(err) {
 });
 ```
 
-see the criterion documentation
-
-`where()` can take any valid [criterion](https://github.com/snd/criterion)
+see the [criterion readme](https://github.com/snd/criterion) for all the ways to
+specify where conditions in mesa.
 
 ##### update
 
