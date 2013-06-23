@@ -2,10 +2,21 @@
 
 [![Build Status](https://travis-ci.org/snd/mesa.png)](https://travis-ci.org/snd/mesa)
 
-mesa provides easy access to postgres databases
+**simple elegant sql for nodejs**
 
-every call to a chainable configuration method (`table`, `connection`, `attributes`, `where`, ...)
-returns a new mesa object and doesn't change the state of the mesa object it is called on.
+mesa is not an orm. it aims to help as much as possible with the construction, composition and execution of sql queries
+while not restricting full access to the underlying database driver and database in any way.
+
+mesa builds on top of [mohair, a simple fluent sql query builder](https://github.com/snd/mohair).
+
+it adds the ability to execute these queries, to declare and include
+associations (`hasOne`, `belongsTo`, `hasMany`, `hasAndBelongsToMany`) and more.
+
+mesa has been battle tested in a medium sized (8 heroku dynos) production environment
+for half a year now.
+
+mesa uses criterion for sql-where-conditions.
+[look here for further documentation](https://github.com/snd/criterion)
 
 ### install
 
@@ -13,114 +24,168 @@ returns a new mesa object and doesn't change the state of the mesa object it is 
 npm install mesa
 ```
 
-### configure
+### use
 
-```coffeescript
-pg = require 'pg'
-mesa = require 'mesa'
+mesa has a fluent interface where every method returns a new object.
+no method ever changes the state of the object it is called on.
+this enables a functional programming style.
 
-getConnection = (cb) -> pg.create 'tcp://foo@localhost/bar', cb
+#### require
 
-# the user object will be used in all following examples
-user = mesa
-    .table('user')
-    .connection(getConnection)
-    .attributes(['name', 'email'])
-    .primaryKey('my_id') # optional, defaults to 'id'
+```javascript
+var mesa = require('mesa');
 ```
 
-`connection()` either takes a connection object or a function, which is supposed to take a
-callback and call it with a connection object.
-providing a connection object explictely is useful for transactions.
+#### connections
 
-`attributes()` sets the properties to pick from data in `create` and `update`.
-it must be called before using `create` or `update`
+**mesa only works with ([node-postgres](https://github.com/brianc/node-postgres) at the moment**
 
-### command
+tell mesa how to get a connection from the pool:
+
+```javascript
+var pg = require('pg');
+
+var mesaWithConnection = mesa.connection(function(cb) {
+    pg.connect('tcp://username@localhost/database', cb);
+});
+
+```
+
+`mesaWithConnection` will now use the provided function to get connections
+for the commands you execute.
+
+these connections are under mesas control.
+mesa will [properly call done()](https://github.com/brianc/node-postgres/wiki/pg#connectfunction-callback) on every connection it has obtained from the
+pool.
+
+#### tables
+
+specify the table to use:
+
+```javascript
+var userTable = mesaWithConnection.table('user');
+```
+
+#### command
 
 ##### insert
 
-```coffeescript
-user.insert {
-    name: 'foo'
-}, (err, userId) -> # ...
+```javascript
+userTable.
+    .attributes(['name‘])
+    .insert({
+        name: 'alice'
+    }, function(err, id) {
+    });
 ```
+
+`attributes()` sets the properties to pick from data in the `create()` and `update()`
+methods. `attributes()` prevents mass assignment
+and must be called before calling the `create()` or `update()` methods.
 
 ##### insert multiple records
 
-```coffeescript
-user.insertMany [
-    {name: 'foo'}
-    {name: 'bar'}
-], (err, userIds) -> # ...
+```javascript
+userTable
+    .attributes(['name‘])
+    .insertMany([
+        {name: 'alice'},
+        {name: 'bob'}
+    ], function(err, ids) {
+    });
 ```
+
+##### insert with some raw sql
+
+```javascript
+userTable.
+    .attributes(['name‘, 'created'])
+    .insert({
+        name: 'alice'
+        created: userTable.raw('NOW()')
+    }, function(err, id) {
+    });
+```
+
+`raw()` can be used to inject arbitrary sql instead of binding a parameter.
 
 ##### delete
 
-```coffeescript
-user.where(id: 3).delete (err) -> # ...
+```javascript
+userTable.where({id: 3}).delete(function(err) {
+});
 ```
 
-`where` can take any valid [criterion](https://github.com/snd/criterion)
+see the criterion documentation
+
+`where()` can take any valid [criterion](https://github.com/snd/criterion)
 
 ##### update
 
-```coffeescript
-user.where(id: 3).where(name: 'foo').update {name: 'bar'}, (err) -> # ...
+```javascript
+userTable
+    .where({id: 3})
+    .where({name: 'alice')
+    .update({name: 'bob'}, function(err) {
+    });
 ```
 
 multiple calls to `where` are anded together.
 
-### query
+#### query
 
 ##### find the first
 
-```coffeescript
-user.where(id: 3).first (err, user) -> # ...
+```javascript
+userTable.where({id: 3}).first(function(err, user) {
+});
 ```
 
 `where` can take any valid [criterion](https://github.com/snd/criterion)
 
 ##### test for existence
 
-```coffeescript
-user.where(id: 3).exists (err, exists) -> # ...
+```javascript
+userTable.where({id: 3}).exists(function(err, exists) {
+});
 ```
 
 ##### find all
 
-```coffeescript
-user.where(id: 3).find (err, users) -> # ...
+```javascript
+userTable.where({id: 3}).find(function(err, user) {
+
+});
 ```
 
 ##### select, join, group, order, limit, offset
 
-```coffeescript
-user
+```javascript
+userTable
     .select('user.*, count(project.id) AS project_count')
-    .where(id: 3)
+    .where({id: 3})
     .where('name = ?', 'foo')
     .join('JOIN project ON user.id = project.user_id')
     .group('user.id')
     .order('created DESC, name ASC')
     .limit(10)
     .offset(20)
-    .find (err, users) ->
+    .find(function(err, users) {
+
+    });
 ```
 
-mesa uses [mohair](https://github.com/snd/mohair) for `where`, `select`, `join`, `group`, `order`, `limit` and `order`.
-look [here](https://github.com/snd/mohair) for further documentation.
-
-### associations
+#### associations
 
 ##### has one
 
-use `hasOne` if the foreign key is in the other table (`address` in this example)
+use `hasOne` if the foreign key is in the other table (`addressTable` in this example)
 
-```coffeescript
-user.hasOne 'address', address,
-    primaryKey: 'id'                # optional with default: "id"
-    foreignKey: 'user_id'           # optional with default: "#{user.getTable()}_id"
+```javascript
+var userTable = userTable.hasOne('address', addressTable, {
+    primaryKey: 'id',               // optional with default: 'id'
+    foreignKey: 'user_id'           // optional with default: userTable.getTable() + '_id'
+});
 ```
 
 the second argument can be a function which must return a model.
@@ -131,104 +196,129 @@ it's also a way to do self associations.
 ##### belongs to
 
 use `belongsTo` if the foreign key is in the table of the model that `belongsTo`
-is called on (`project` in this example)
+is called on (`projectTable` in this example)
 
-```coffeescript
-project.belongsTo 'user', user,
-    primaryKey: 'id'                # optional with default: "id"
-    foreignKey: 'user_id'           # optional with default: "#{user.getTable()}_id"
+```javascript
+var projectTable = projectTable.belongsTo('user', userTable, {
+    primaryKey: 'id',               // optional with default: 'id'
+    foreignKey: 'user_id'           // optional with default: userTable.getTable() + '_id'
+});
 ```
 
 ##### has many
 
-use `hasMany` if the foreign key is in the other table (`user` in this example) and
+use `hasMany` if the foreign key is in the other table (`userTable` in this example) and
 there are multiple associated records
 
-```coffeescript
-user.hasMany 'projects', project,
-    primaryKey: 'id'                # optional with default: "id"
-    foreignKey: 'user_id'           # optional with default: "#{user.getTable()}_id"
+```javascript
+var userTable = userTable.hasMany('projects', projectTable, {
+    primaryKey: 'id',               // optional with default: 'id'
+    foreignKey: 'user_id'           // optional with default: userTable.getTable() + '_id'
+});
 ```
 
 ##### has and belongs to many
 
 use `hasAndBelongsToMany` if the association uses a join table
 
-```coffeescript
-user.hasAndBelongsToMany 'projects', project,
-    joinTable: 'user_project'       # required
-    primaryKey: 'id'                # optional with default: "id"
-    foreignKey: 'user_id'           # optional with default: "#{user.getTable()}_id"
-    otherPrimaryKey: 'id'           # optional with default: "id"
-    otherForeignKey: 'project_id'   # optional with default: "#{project.getTable()}_id"
+```javascript
+var userTable = userTable.hasAndBelongsToMany('projects', projectTable, {
+    joinTable: 'user_project',      // required
+    primaryKey: 'id',               // optional with default: 'id'
+    foreignKey: 'user_id',          // optional with default: userTable.getTable() + '_id'
+    otherPrimaryKey: 'id',          // optional with default: 'id'
+    otherForeignKey: 'project_id'   // optional with default: project.getTable() + '_id'
+});
 ```
 
 ##### including associated
 
-associations are only fetched if you `include` them
+associations are only fetched if you `include` them:
 
-```coffeescript
-user.includes(address: true)
+```javascript
+userTable.includes({address: true}).find(function(err, users) {
+});
 ```
 
-includes can be nested (arbitrarily deep)
+includes can be nested arbitrarily deep:
 
-```coffeescript
-user.includes(shipping_address: {street: true, town: true}, billing_address: true, friends: {billing_address: true})
+```javascript
+userTable
+    .includes({
+        shipping_address: {
+            street: true,
+            town: true
+        },
+        billing_address: true,
+        friends: {
+            billing_address: true
+    }})
+    .find(function(err, users) {
+    });
 ```
 
-### extending mesa
+### advanced use
 
-##### add your own functions
+##### extending mesas fluent interface
 
-```coffeescript
-user = mesa.table('user')
+mesa has a fluent interface where every method returns a new object.
+no method ever changes the state of the object it is called on.
 
-user.activeAdmins = -> @where(visible: true, role: 'admin')
+every mesa object prototypically inherits from the object
+it was created from.
 
-user.activeAdmins().find (err, activeAdmins) -> # ...
+this means that every object in the chain is very lightweight since
+it shares structure with objects before it in the prototype chain.
+
+it also makes it very easy to extend mesa's fluent interface:
+
+```javascript
+var userTable = mesa.table('user');
+
+userTable.activeAdmins = function() {
+    return this.where(visible: true, role: 'admin');
+};
+
+userTable.whereCreatedBetween = function(from, to) {
+    return this.where('created BETWEEN ? AND ?', from, to);
+};
+
+userTable
+    .order('created DESC')
+    .activeAdmins()
+    .whereCreatedBetween(new Date(2013, 4, 10), new Date(2013, 4, 12))
+    .find(function(err, users) {
+    });
 ```
 
-##### overwrite existing functions
+##### user controlled connections
 
-when inserting a user, also insert his address. do both in the same transaction:
+sometimes, when using a transaction, you need to run multiple commands over multiple tables on the
+same connection.
 
-```coffeescript
-address = mesa
-    .table('address')
-    .attributes(['name', 'street', 'user_id']
+use `getConnection()` to get a raw connection from mesa.
+you can run arbitrary sql on that connection.
+then use `connection()` with a connection object to
+tell mesa to explicitely use that connection for commands instead of getting
+a new one from the pool:
 
-user = mesa.table('user').attributes(['email', 'password'])
-
-user.insert = (data, cb) ->
-    @getConnection (err, connection) =>
-        return cb err if err?
-
-        connection.query 'BEGIN;', (err) =>
-            return cb err if err?
-
-            # do the original insert but on the transactional connection
-            mesa.insert.call @connection(connection), data, (err, userId) =>
-                return cb err if err?
-
-                address = data
-                address.user_id = userId
-
-                # insert the address portion of data on the transactional connection
-                address.connection(connection).insert data, (err) ->
-                    return cb err if err?
-
-                    connection.query 'COMMIT;', [], (err) ->
-                        return cb err if err?
-                        cb null, userId
-
-
-user.insert {
-    password: 'bar'
-    email: 'foo@example.com'
-    name: 'foo'
-    address: 'foostreet'
-}, (err, userId) -> # ...
+```javascript
+userTable.getConnection(function(err, connection, done) {
+    connection.query('BEGIN', function(err) {
+        userTable
+            // use the transactional connection explicitely
+            .connection(connection)
+            .insert({name: 'alice'}, function(err, id) {
+                // run more commands in the transaction
+                // possibly on other tables
+            });
+    });
+});
 ```
+
+when you are done using the connection you need to call `done()` to
+tell node-postgres to return the connection to the pool.
+otherwise you will leak that connection, which is **very bad** since
+your application will run out of connections and hang.
 
 ### license: MIT
