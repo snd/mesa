@@ -292,9 +292,9 @@ sometimes, when using a transaction, you need to run multiple commands over mult
 same connection.
 
 use `getConnection()` to get a raw connection from mesa.
-you can run arbitrary sql on that connection.
-then use `connection()` with a connection object to
-tell mesa to explicitely use that connection for commands instead of getting
+you can then run arbitrary sql on that connection.
+use `connection()` with a connection object to
+tell mesa to explicitely use that connection instead of getting
 a new one from the pool:
 
 ```javascript
