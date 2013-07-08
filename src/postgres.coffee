@@ -45,10 +45,16 @@ module.exports.insert = (data, cb) ->
     sql = @replacePlaceholders query.sql() + " RETURNING #{returning}"
 
     @getConnection (err, connection, done) =>
-        return cb err if err?
+        if err?
+            done?()
+            cb err
+            return
 
         connection.query sql, query.params(), (err, results) =>
-            return cb err if err?
+            if err?
+                done?()
+                cb err
+                return
 
             row = results.rows[0]
 
@@ -66,10 +72,16 @@ module.exports.insertMany = (array, cb) ->
     sql = @replacePlaceholders query.sql() + " RETURNING #{returning}"
 
     @getConnection (err, connection, done) =>
-        return cb err if err?
+        if err?
+            done?()
+            cb err
+            return
 
         connection.query sql, query.params(), (err, results) =>
-            return cb err if err?
+            if err?
+                done?()
+                cb err
+                return
 
             done?()
 
@@ -80,11 +92,18 @@ module.exports.delete = (cb) ->
     sql = @replacePlaceholders query.sql()
 
     @getConnection (err, connection, done) ->
-        return cb err if err?
+        if err?
+            done?()
+            cb err
+            return
 
-        done?()
-
-        connection.query sql, query.params(), cb
+        connection.query sql, query.params(), (err, results) ->
+            if err?
+                done?()
+                cb err
+                return
+            done?()
+            cb null, results
 
 module.exports.update = (updates, cb) ->
     unless @_attributes?
@@ -98,10 +117,16 @@ module.exports.update = (updates, cb) ->
     sql += " RETURNING #{@_returning}" if @_returning?
 
     @getConnection (err, connection, done) =>
-        return cb err if err?
+        if err?
+            done?()
+            cb err
+            return
 
         connection.query sql, query.params(), (err, results) =>
-            return cb err if err?
+            if err?
+                done?()
+                cb err
+                return
             done?()
             return cb null, results unless @_returning?
             return cb null, results.rows
@@ -114,10 +139,16 @@ module.exports.first = (cb) ->
     sql = @replacePlaceholders query.sql()
 
     @getConnection (err, connection, done) =>
-        return cb err if err?
+        if err?
+            done?()
+            cb err
+            return
 
         connection.query sql, query.params(), (err, results) =>
-            return cb err if err?
+            if err?
+                done?()
+                cb err
+                return
 
             record = results.rows[0]
 
@@ -127,7 +158,10 @@ module.exports.first = (cb) ->
                 return
 
             @_getIncludes connection, [record], (err, withIncludes) =>
-                return cb err if err?
+                if err?
+                    done?()
+                    cb err
+                    return
                 done?()
                 cb null, withIncludes[0]
 
@@ -135,10 +169,16 @@ module.exports.find = (cb) ->
     sql = @replacePlaceholders @sql()
 
     @getConnection (err, connection, done) =>
-        return cb err if err?
+        if err?
+            done?()
+            cb err
+            return
 
         connection.query sql, @params(), (err, results) =>
-            return cb err if err?
+            if err?
+                done?()
+                cb err
+                return
 
             records = results.rows
 
@@ -148,7 +188,10 @@ module.exports.find = (cb) ->
                 return
 
             @_getIncludes connection, records, (err, withIncludes) =>
-                return cb err if err?
+                if err?
+                    done?()
+                    cb err
+                    return
 
                 done?()
 
@@ -159,10 +202,16 @@ module.exports.exists = (cb) ->
     sql = @replacePlaceholders query.sql()
 
     @getConnection (err, connection, done) =>
-        return cb err if err?
+        if err?
+            done?()
+            cb err
+            return
 
         connection.query sql, query.params(), (err, results) ->
-            return cb err if err?
+            if err?
+                done?()
+                cb err
+                return
 
             done?()
 
