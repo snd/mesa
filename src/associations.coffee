@@ -43,15 +43,15 @@ module.exports =
 
         reducer = (promiseSoFar, key) ->
             promiseSoFar.then ->
-                q.nfcall self._associations[key], connection, self._includes[key], records
+                q.nfcall self._associations[key].bind(self), connection, self._includes[key], records
 
         promise = keys.reduce reducer, q.resolve()
 
         promise.thenResolve(records).nodeify cb
 
     hasOne: (name, model, options) ->
-        self = this
-        self.hasAssociated name, (connection, subIncludes, records, cb) ->
+        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+            self = this
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
@@ -70,8 +70,8 @@ module.exports =
                 cb null, records
 
     hasMany: (name, model, options) ->
-        self = this
-        self.hasAssociated name, (connection, subIncludes, records, cb) ->
+        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+            self = this
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
@@ -90,8 +90,8 @@ module.exports =
                 cb null, records
 
     belongsTo: (name, model, options) ->
-        self = this
-        self.hasAssociated name, (connection, subIncludes, records, cb) ->
+        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+            self = this
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
@@ -110,8 +110,8 @@ module.exports =
                 cb null, records
 
     hasAndBelongsToMany: (name, model, options) ->
-        self = this
-        self.hasAssociated name, (connection, subIncludes, records, cb) ->
+        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+            self = this
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
