@@ -64,7 +64,9 @@ module.exports =
 
             criterion = createCriterion primaryKey, foreignKey, records
 
+            self.hookBeforeHasOneQuery? self, model, connection
             model.where(criterion).find (err, associated) ->
+                self.hookAfterHasOneQuery? self, model, connection, err, associated
                 return cb err if err?
                 setOneInclude name, foreignKey, primaryKey, records, associated
                 cb null, records
@@ -84,7 +86,9 @@ module.exports =
 
             criterion = createCriterion primaryKey, foreignKey, records
 
+            self.hookBeforeHasManyQuery? self, model, connection
             model.where(criterion).find (err, associated) ->
+                self.hookAfterHasManyQuery? self, model, connection, err, associated
                 return cb err if err?
                 setManyIncludes name, foreignKey, primaryKey, records, associated
                 cb null, records
@@ -104,7 +108,9 @@ module.exports =
 
             criterion = createCriterion foreignKey, primaryKey, records
 
+            self.hookBeforeBelongsToQuery? self, model, connection
             model.where(criterion).find (err, associated) ->
+                self.hookAfterBelongsToQuery? self, model, connection, err, associated
                 return cb err if err?
                 setOneInclude name, primaryKey, foreignKey, records, associated
                 cb null, records
@@ -135,7 +141,9 @@ module.exports =
 
             sql = self.replacePlaceholders query.sql()
 
+            self.hookBeforeHasAndBelongsToManyJoinTableQuery? self, model, connection
             connection.query sql, query.params(), (err, results) ->
+                self.hookAfterHasAndBelongsToManyJoinTableQuery? self, model, connection, err, results
                 return cb err if err?
 
                 intersection = results.rows
@@ -148,7 +156,9 @@ module.exports =
                 criterion =
                     createCriterion otherForeignKey, otherPrimaryKey, intersection
 
+                self.hookBeforeHasAndBelongsToManyQuery? self, model, connection
                 model.where(criterion).find (err, associated) ->
+                    self.hookAfterHasAndBelongsToManyQuery? self, model, connection, err, associated
                     return cb err if err?
 
                     records.forEach (record) ->

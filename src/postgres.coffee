@@ -146,8 +146,8 @@ module.exports.update = (updates, cb) ->
 
 module.exports.first = (cb) ->
     self = this
-    query =  self._mohair
-    sql = self.replacePlaceholders query.sql()
+    sql = self.replacePlaceholders self.sql()
+    params = self.params()
 
     self.getConnection (err, connection, done) ->
         if err?
@@ -155,7 +155,10 @@ module.exports.first = (cb) ->
             cb err
             return
 
-        connection.query sql, query.params(), (err, results) ->
+        self.hookBeforeFirstQuery? self, connection, sql, params
+        connection.query sql, params, (err, results) ->
+            self.hookAfterFirstQuery? self, connection, sql, params, err, results
+
             if err?
                 done?()
                 cb err
@@ -168,7 +171,10 @@ module.exports.first = (cb) ->
                 cb null, null
                 return
 
+            self.hookBeforeGetIncludesForFirst? self, connection, record
             self._getIncludes connection, [record], (err, withIncludes) ->
+                self.hookAfterGetIncludesForFirst? self, connection, err, withIncludes
+
                 if err?
                     done?()
                     cb err
@@ -179,6 +185,7 @@ module.exports.first = (cb) ->
 module.exports.find = (cb) ->
     self = this
     sql = self.replacePlaceholders self.sql()
+    params = self.params()
 
     self.getConnection (err, connection, done) ->
         if err?
@@ -186,7 +193,9 @@ module.exports.find = (cb) ->
             cb err
             return
 
-        connection.query sql, self.params(), (err, results) ->
+        self.hookBeforeFindQuery? self, connection, sql, params
+        connection.query sql, params, (err, results) ->
+            self.hookAfterFindQuery? self, connection, sql, params, err, results
             if err?
                 done?()
                 cb err
@@ -199,7 +208,10 @@ module.exports.find = (cb) ->
                 cb null, []
                 return
 
+            self.hookBeforeGetIncludesForFind? self, connection, record
             self._getIncludes connection, records, (err, withIncludes) ->
+                self.hookAfterGetIncludesForFind? self, connection, err, withIncludes
+
                 if err?
                     done?()
                     cb err
