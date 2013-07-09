@@ -208,7 +208,7 @@ module.exports.find = (cb) ->
                 cb null, []
                 return
 
-            self.hookBeforeGetIncludesForFind? self, connection, record
+            self.hookBeforeGetIncludesForFind? self, connection, records
             self._getIncludes connection, records, (err, withIncludes) ->
                 self.hookAfterGetIncludesForFind? self, connection, err, withIncludes
 
