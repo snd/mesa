@@ -12,7 +12,7 @@ module.exports._mohair = mohair
 module.exports._originalMohair = mohair
 
 module.exports.getConnection = (cb) ->
-    connection = @_connection
+    connection = this._connection
     unless connection?
         throw new Error "the method you are calling requires a call to connection() before it"
     return connection cb if 'function' is typeof connection
@@ -24,33 +24,34 @@ module.exports.replacePlaceholders = (sql) ->
     sql.replace /\?/g, -> '$' + index++
 
 module.exports.returning = (arg) ->
-        throw new Error 'must be a string' unless 'string' is typeof arg
-        throw new Error 'must not be the empty string' if arg.length is 0
-        @set '_returning', arg
+    throw new Error 'must be a string' unless 'string' is typeof arg
+    throw new Error 'must not be the empty string' if arg.length is 0
+    this.set '_returning', arg
 
 # command
 # -------
 
 module.exports.insert = (data, cb) ->
-    unless @_attributes?
+    self = this
+    unless self._attributes?
         throw new Error 'insert() requires call to attributes() before it'
 
-    cleanData = _.pick data, @_attributes
+    cleanData = _.pick data, self._attributes
     if Object.keys(cleanData).length is 0
         throw new Error 'nothing to insert'
 
-    query = @_mohair.insert cleanData
+    query = self._mohair.insert cleanData
 
-    returning = if @_returning then @_returning else @_primaryKey
-    sql = @replacePlaceholders query.sql() + " RETURNING #{returning}"
+    returning = if self._returning then self._returning else self._primaryKey
+    sql = self.replacePlaceholders query.sql() + " RETURNING #{returning}"
 
-    @getConnection (err, connection, done) =>
+    self.getConnection (err, connection, done) ->
         if err?
             done?()
             cb err
             return
 
-        connection.query sql, query.params(), (err, results) =>
+        connection.query sql, query.params(), (err, results) ->
             if err?
                 done?()
                 cb err
@@ -60,24 +61,28 @@ module.exports.insert = (data, cb) ->
 
             done?()
 
-            cb null, if @_returning? then row else row[@_primaryKey]
+            cb null, if self._returning?
+                row
+            else
+                row[self._primaryKey]
 
 
 module.exports.insertMany = (array, cb) ->
-    unless @_attributes?
+    self = this
+    unless self._attributes?
         throw new Error 'insertMany() requires call to attributes() before it'
 
-    query = @_mohair.insertMany array.map (x) => _.pick x, @_attributes
-    returning = if @_returning then @_returning else @_primaryKey
-    sql = @replacePlaceholders query.sql() + " RETURNING #{returning}"
+    query = self._mohair.insertMany array.map (x) => _.pick x, self._attributes
+    returning = if self._returning then self._returning else self._primaryKey
+    sql = self.replacePlaceholders query.sql() + " RETURNING #{returning}"
 
-    @getConnection (err, connection, done) =>
+    self.getConnection (err, connection, done) ->
         if err?
             done?()
             cb err
             return
 
-        connection.query sql, query.params(), (err, results) =>
+        connection.query sql, query.params(), (err, results) ->
             if err?
                 done?()
                 cb err
@@ -85,13 +90,17 @@ module.exports.insertMany = (array, cb) ->
 
             done?()
 
-            cb null, if @_returning? then results.rows else _.pluck results.rows, @_primaryKey
+            cb null, if self._returning?
+                results.rows
+            else
+                _.pluck results.rows, self._primaryKey
 
 module.exports.delete = (cb) ->
-    query = @_mohair.delete()
-    sql = @replacePlaceholders query.sql()
+    self = this
+    query = self._mohair.delete()
+    sql = self.replacePlaceholders query.sql()
 
-    @getConnection (err, connection, done) ->
+    self.getConnection (err, connection, done) ->
         if err?
             done?()
             cb err
@@ -106,45 +115,47 @@ module.exports.delete = (cb) ->
             cb null, results
 
 module.exports.update = (updates, cb) ->
-    unless @_attributes?
+    self = this
+    unless self._attributes?
         throw new Error 'update() requires call to attributes() before it'
 
-    cleanUpdates = _.pick updates, @_attributes
+    cleanUpdates = _.pick updates, self._attributes
     throw new Error 'nothing to update' if Object.keys(cleanUpdates).length is 0
 
-    query =  @_mohair.update cleanUpdates
-    sql = @replacePlaceholders query.sql()
-    sql += " RETURNING #{@_returning}" if @_returning?
+    query =  self._mohair.update cleanUpdates
+    sql = self.replacePlaceholders query.sql()
+    sql += " RETURNING #{self._returning}" if self._returning?
 
-    @getConnection (err, connection, done) =>
+    self.getConnection (err, connection, done) ->
         if err?
             done?()
             cb err
             return
 
-        connection.query sql, query.params(), (err, results) =>
+        connection.query sql, query.params(), (err, results) ->
             if err?
                 done?()
                 cb err
                 return
             done?()
-            return cb null, results unless @_returning?
+            return cb null, results unless self._returning?
             return cb null, results.rows
 
 # query
 # -----
 
 module.exports.first = (cb) ->
-    query =  @_mohair
-    sql = @replacePlaceholders query.sql()
+    self = this
+    query =  self._mohair
+    sql = self.replacePlaceholders query.sql()
 
-    @getConnection (err, connection, done) =>
+    self.getConnection (err, connection, done) ->
         if err?
             done?()
             cb err
             return
 
-        connection.query sql, query.params(), (err, results) =>
+        connection.query sql, query.params(), (err, results) ->
             if err?
                 done?()
                 cb err
@@ -157,7 +168,7 @@ module.exports.first = (cb) ->
                 cb null, null
                 return
 
-            @_getIncludes connection, [record], (err, withIncludes) =>
+            self._getIncludes connection, [record], (err, withIncludes) ->
                 if err?
                     done?()
                     cb err
@@ -166,15 +177,16 @@ module.exports.first = (cb) ->
                 cb null, withIncludes[0]
 
 module.exports.find = (cb) ->
-    sql = @replacePlaceholders @sql()
+    self = this
+    sql = self.replacePlaceholders self.sql()
 
-    @getConnection (err, connection, done) =>
+    self.getConnection (err, connection, done) ->
         if err?
             done?()
             cb err
             return
 
-        connection.query sql, @params(), (err, results) =>
+        connection.query sql, self.params(), (err, results) ->
             if err?
                 done?()
                 cb err
@@ -187,7 +199,7 @@ module.exports.find = (cb) ->
                 cb null, []
                 return
 
-            @_getIncludes connection, records, (err, withIncludes) =>
+            self._getIncludes connection, records, (err, withIncludes) ->
                 if err?
                     done?()
                     cb err
@@ -198,10 +210,11 @@ module.exports.find = (cb) ->
                 cb null, withIncludes
 
 module.exports.exists = (cb) ->
-    query =  @_mohair
-    sql = @replacePlaceholders query.sql()
+    self = this
+    query =  self._mohair
+    sql = self.replacePlaceholders query.sql()
 
-    @getConnection (err, connection, done) =>
+    self.getConnection (err, connection, done) ->
         if err?
             done?()
             cb err

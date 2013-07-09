@@ -21,43 +21,46 @@ module.exports =
     # -----------
 
     hasAssociated: (name, associationFun) ->
-        associations = _.extend {}, @_associations
+        self = this
+        associations = _.extend {}, self._associations
         associations[name] = associationFun
-        @set '_associations', associations
+        self.set '_associations', associations
 
     _getIncludes: (connection, records, cb) ->
-        unless @_includes?
+        self = this
+        unless self._includes?
             process.nextTick ->
                 cb null, records
             return
 
-        keys = Object.keys @_includes
+        keys = Object.keys self._includes
 
         throw new Error 'empty includes' if keys.length is 0
 
         keys.forEach (key) =>
-            unless @_associations? and @_associations[key]?
+            unless self._associations? and self._associations[key]?
                 throw new Error "no association: #{key}"
 
-        reducer = (promiseSoFar, key) =>
-            promiseSoFar.then =>
-                q.nfcall @_associations[key], connection, @_includes[key], records
+        reducer = (promiseSoFar, key) ->
+            promiseSoFar.then ->
+                q.nfcall self._associations[key], connection, self._includes[key], records
 
         promise = keys.reduce reducer, q.resolve()
 
         promise.thenResolve(records).nodeify cb
 
     hasOne: (name, model, options) ->
-        @hasAssociated name, (connection, subIncludes, records, cb) =>
+        self = this
+        self.hasAssociated name, (connection, subIncludes, records, cb) ->
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on model' unless self._table?
             throw new Error 'no table set on associated model' unless model._table?
 
-            primaryKey = options?.primaryKey || @_primaryKey
-            foreignKey = options?.foreignKey || "#{@_table}_#{@_primaryKey}"
+            primaryKey = options?.primaryKey || self._primaryKey
+            foreignKey = options?.foreignKey || "#{self._table}_#{self._primaryKey}"
 
             criterion = createCriterion primaryKey, foreignKey, records
 
@@ -67,16 +70,17 @@ module.exports =
                 cb null, records
 
     hasMany: (name, model, options) ->
-        @hasAssociated name, (connection, subIncludes, records, cb) =>
+        self = this
+        self.hasAssociated name, (connection, subIncludes, records, cb) ->
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on model' unless self._table?
             throw new Error 'no table set on associated model' unless model._table?
 
-            primaryKey = options?.primaryKey || @_primaryKey
-            foreignKey = options?.foreignKey || "#{@_table}_#{@_primaryKey}"
+            primaryKey = options?.primaryKey || self._primaryKey
+            foreignKey = options?.foreignKey || "#{self._table}_#{self._primaryKey}"
 
             criterion = createCriterion primaryKey, foreignKey, records
 
@@ -86,15 +90,16 @@ module.exports =
                 cb null, records
 
     belongsTo: (name, model, options) ->
-        @hasAssociated name, (connection, subIncludes, records, cb) =>
+        self = this
+        self.hasAssociated name, (connection, subIncludes, records, cb) ->
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on model' unless self._table?
             throw new Error 'no table set on associated model' unless model._table?
 
-            primaryKey = options?.primaryKey || @_primaryKey
+            primaryKey = options?.primaryKey || self._primaryKey
             foreignKey = options?.foreignKey || "#{model._table}_#{model._primaryKey}"
 
             criterion = createCriterion foreignKey, primaryKey, records
@@ -105,19 +110,20 @@ module.exports =
                 cb null, records
 
     hasAndBelongsToMany: (name, model, options) ->
-        @hasAssociated name, (connection, subIncludes, records, cb) =>
+        self = this
+        self.hasAssociated name, (connection, subIncludes, records, cb) ->
             if 'function' is typeof model then model = model()
             model = model.connection connection
             model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless @_table?
+            throw new Error 'no table set on model' unless self._table?
             throw new Error 'no table set on associated model' unless model._table?
 
             joinTable = options?.joinTable
             throw new Error 'no join table' unless joinTable?
 
-            primaryKey = options.primaryKey || @_primaryKey
-            foreignKey = options.foreignKey || "#{@_table}_#{@_primaryKey}"
+            primaryKey = options.primaryKey || self._primaryKey
+            foreignKey = options.foreignKey || "#{self._table}_#{self._primaryKey}"
 
             otherPrimaryKey = options.otherPrimaryKey || model._primaryKey
             otherForeignKey = options.otherForeignKey || "#{model._table}_#{model._primaryKey}"
@@ -125,9 +131,9 @@ module.exports =
             intersectionCriterion =
                 createCriterion primaryKey, foreignKey, records
 
-            query = @_originalMohair.table(joinTable).where(intersectionCriterion)
+            query = self._originalMohair.table(joinTable).where(intersectionCriterion)
 
-            sql = @replacePlaceholders query.sql()
+            sql = self.replacePlaceholders query.sql()
 
             connection.query sql, query.params(), (err, results) ->
                 return cb err if err?

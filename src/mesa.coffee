@@ -14,33 +14,48 @@ module.exports =
     # ------
 
     set: (key, value) ->
-        object = Object.create @
+        object = Object.create this
         object[key] = value
         object
 
-    connection: (arg) -> @set '_connection', arg
-    attributes: (arg) -> @set '_attributes', arg
-    primaryKey: (arg) -> @set '_primaryKey', arg
-    includes: (arg) -> @set '_includes', arg
+    connection: (arg) ->
+        this.set '_connection', arg
+    attributes: (arg) ->
+        this.set '_attributes', arg
+    primaryKey: (arg) ->
+        this.set '_primaryKey', arg
+    includes: (arg) ->
+        this.set '_includes', arg
 
-    table: (arg) -> @set('_table', arg).set '_mohair', @_mohair.table arg
+    table: (arg) ->
+        this.set('_table', arg).set '_mohair', this._mohair.table arg
 
     # mohair passthroughs
     # -------------------
 
-    sql: -> @_mohair.sql()
-    params: -> @_mohair.params()
+    sql: ->
+        this._mohair.sql()
+    params: ->
+        this._mohair.params()
 
-    raw: (args...) -> @_mohair.raw args...
+    raw: (args...) ->
+        this._mohair.raw args...
 
-    where: (args...) -> @set '_mohair', @_mohair.where args...
-    join: (args...) -> @set '_mohair', @_mohair.join args...
+    where: (args...) ->
+        this.set '_mohair', this._mohair.where args...
+    join: (args...) ->
+        this.set '_mohair', this._mohair.join args...
 
-    select: (args...) -> @set '_mohair', @_mohair.select args...
-    limit: (arg) -> @set '_mohair', @_mohair.limit arg
-    offset: (arg) -> @set '_mohair', @_mohair.offset arg
-    order: (arg) -> @set '_mohair', @_mohair.order arg
-    group: (arg) -> @set '_mohair', @_mohair.group arg
+    select: (args...) ->
+        this.set '_mohair', this._mohair.select args...
+    limit: (arg) ->
+        this.set '_mohair', this._mohair.limit arg
+    offset: (arg) ->
+        this.set '_mohair', this._mohair.offset arg
+    order: (arg) ->
+        this.set '_mohair', this._mohair.order arg
+    group: (arg) ->
+        this.set '_mohair', this._mohair.group arg
 
     # associations
     # ------------
