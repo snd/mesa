@@ -42,19 +42,23 @@ module.exports =
 
         fetchKeys = (keys) ->
             if keys.length is 0
+                self.hookAfterIncludes? self, connection, keysToFetch
                 cb null, records
                 return
 
             key = keys[0]
             rest = keys.slice 1
 
+            self.hookBeforeInclude? self, connection, key
             self._associations[key].call self, connection, self._includes[key], records, (err, results) ->
+                self.hookAfterInclude? self, connection, key
                 if err?
                     cb err
                     return
 
                 fetchKeys rest
 
+        self.hookBeforeIncludes? self, connection, keysToFetch
         fetchKeys keysToFetch
 
     hasOne: (name, model, options) ->
