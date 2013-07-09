@@ -26,7 +26,6 @@
     },
     "dependencies": {
         "mohair": "0.10.3",
-        "q": "0.9.6",
         "underscore": "1.4.4"
     },
     "devDependencies": {

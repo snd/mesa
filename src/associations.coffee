@@ -1,5 +1,4 @@
 _ = require 'underscore'
-q = require 'q'
 mohair = require 'mohair'
 
 createCriterion = (pk, fk, records) ->
@@ -33,21 +32,30 @@ module.exports =
                 cb null, records
             return
 
-        keys = Object.keys self._includes
+        keysToFetch = Object.keys self._includes
 
-        throw new Error 'empty includes' if keys.length is 0
+        throw new Error 'empty includes' if keysToFetch.length is 0
 
-        keys.forEach (key) =>
+        keysToFetch.forEach (key) =>
             unless self._associations? and self._associations[key]?
                 throw new Error "no association: #{key}"
 
-        reducer = (promiseSoFar, key) ->
-            promiseSoFar.then ->
-                q.nfcall self._associations[key].bind(self), connection, self._includes[key], records
+        fetchKeys = (keys) ->
+            if keys.length is 0
+                cb null, records
+                return
 
-        promise = keys.reduce reducer, q.resolve()
+            key = keys[0]
+            rest = keys.slice 1
 
-        promise.thenResolve(records).nodeify cb
+            self._associations[key].call self, connection, self._includes[key], records, (err, results) ->
+                if err?
+                    cb err
+                    return
+
+                fetchKeys rest
+
+        fetchKeys keysToFetch
 
     hasOne: (name, model, options) ->
         this.hasAssociated name, (connection, subIncludes, records, cb) ->
