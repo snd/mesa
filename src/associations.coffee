@@ -26,7 +26,10 @@ module.exports =
         @set '_associations', associations
 
     _getIncludes: (connection, records, cb) ->
-        unless @_includes? then return process.nextTick -> cb null, records
+        unless @_includes?
+            process.nextTick ->
+                cb null, records
+            return
 
         keys = Object.keys @_includes
 
@@ -133,7 +136,8 @@ module.exports =
 
                 records.forEach (record) -> record[name] = []
 
-                return cb null, records if intersection.length is 0
+                if intersection.length is 0
+                    return cb null, records
 
                 criterion =
                     createCriterion otherForeignKey, otherPrimaryKey, intersection
