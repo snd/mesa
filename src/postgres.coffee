@@ -33,8 +33,9 @@ module.exports.returning = (arg) ->
 
 module.exports.insert = (data, cb) ->
     self = this
-    unless self._attributes?
-        throw new Error 'insert() requires call to attributes() before it'
+
+    self.assertReady()
+    self.assertAttributes()
 
     cleanData = _.pick data, self._attributes
     if Object.keys(cleanData).length is 0
@@ -69,8 +70,9 @@ module.exports.insert = (data, cb) ->
 
 module.exports.insertMany = (array, cb) ->
     self = this
-    unless self._attributes?
-        throw new Error 'insertMany() requires call to attributes() before it'
+
+    self.assertReady()
+    self.assertAttributes()
 
     query = self._mohair.insertMany array.map (x) => _.pick x, self._attributes
     returning = if self._returning then self._returning else self._primaryKey
@@ -97,6 +99,9 @@ module.exports.insertMany = (array, cb) ->
 
 module.exports.delete = (cb) ->
     self = this
+
+    self.assertReady()
+
     query = self._mohair.delete()
     sql = self.replacePlaceholders query.sql()
 
@@ -116,8 +121,9 @@ module.exports.delete = (cb) ->
 
 module.exports.update = (updates, cb) ->
     self = this
-    unless self._attributes?
-        throw new Error 'update() requires call to attributes() before it'
+
+    self.assertReady()
+    self.assertAttributes()
 
     cleanUpdates = _.pick updates, self._attributes
     throw new Error 'nothing to update' if Object.keys(cleanUpdates).length is 0
@@ -146,6 +152,9 @@ module.exports.update = (updates, cb) ->
 
 module.exports.first = (cb) ->
     self = this
+
+    self.assertReady()
+
     sql = self.replacePlaceholders self.sql()
     params = self.params()
 
@@ -155,9 +164,9 @@ module.exports.first = (cb) ->
             cb err
             return
 
-        self.hookBeforeFirstQuery? self, connection, sql, params
+        self.hookBeforeFirst? self, connection, sql, params
         connection.query sql, params, (err, results) ->
-            self.hookAfterFirstQuery? self, connection, sql, params, err, results
+            self.hookAfterFirst? self, connection, sql, params, err, results
 
             if err?
                 done?()
@@ -172,7 +181,7 @@ module.exports.first = (cb) ->
                 return
 
             self.hookBeforeGetIncludesForFirst? self, connection, record
-            self._getIncludes connection, [record], (err, withIncludes) ->
+            self.connection(connection)._getIncludes [record], (err, withIncludes) ->
                 self.hookAfterGetIncludesForFirst? self, connection, err, withIncludes
 
                 if err?
@@ -184,6 +193,9 @@ module.exports.first = (cb) ->
 
 module.exports.find = (cb) ->
     self = this
+
+    self.assertReady()
+
     sql = self.replacePlaceholders self.sql()
     params = self.params()
 
@@ -193,9 +205,9 @@ module.exports.find = (cb) ->
             cb err
             return
 
-        self.hookBeforeFindQuery? self, connection, sql, params
+        self.hookBeforeFind? self, connection, sql, params
         connection.query sql, params, (err, results) ->
-            self.hookAfterFindQuery? self, connection, sql, params, err, results
+            self.hookAfterFind? self, connection, sql, params, err, results
             if err?
                 done?()
                 cb err
@@ -209,7 +221,7 @@ module.exports.find = (cb) ->
                 return
 
             self.hookBeforeGetIncludesForFind? self, connection, records
-            self._getIncludes connection, records, (err, withIncludes) ->
+            self.connection(connection)._getIncludes records, (err, withIncludes) ->
                 self.hookAfterGetIncludesForFind? self, connection, err, withIncludes
 
                 if err?
@@ -223,6 +235,9 @@ module.exports.find = (cb) ->
 
 module.exports.exists = (cb) ->
     self = this
+
+    self.assertReady()
+
     query =  self._mohair
     sql = self.replacePlaceholders query.sql()
 

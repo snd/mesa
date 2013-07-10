@@ -57,12 +57,31 @@ module.exports =
     group: (arg) ->
         this.set '_mohair', this._mohair.group arg
 
+    # misc
+    # ----
+
+    assertReady: ->
+        unless this._table?
+            throw new Error 'mesa requires `table()` to be called before any query'
+        unless this._connection?
+            throw new Error 'mesa requires `connection()` to be called before any query'
+
+    assertAttributes: ->
+        unless this._attributes?
+            throw new Error 'mesa requires `attributes()` to be called before an insert or update query'
+
     # associations
     # ------------
+
+
+    reuseConnectionForIncludes: true
 
     hasAssociated: associations.hasAssociated
     hasOne: associations.hasOne
     hasMany: associations.hasMany
     belongsTo: associations.belongsTo
-    hasAndBelongsToMany: associations.hasAndBelongsToMany
+    hasManyThrough: associations.hasManyThrough
+    hasOneThrough: associations.hasOneThrough
+
     _getIncludes: associations._getIncludes
+    _prepareAssociatedTable: associations._prepareAssociatedTable

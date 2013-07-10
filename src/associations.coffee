@@ -15,6 +15,13 @@ setManyIncludes = (name, pk, fk, records, associated) ->
         record[name] = _.filter associated, (x) -> record[fk] is x[pk]
 
 module.exports =
+    _prepareAssociatedTable: (table, subIncludes) ->
+        self = this
+        localTable = if 'function' is typeof table then table() else table
+        localTable = localTable.includes subIncludes if 'object' is typeof subIncludes
+        if self.reuseConnectionForIncludes
+            localTable = localTable.connection self._connection
+        return localTable
 
     # association
     # -----------
@@ -25,8 +32,9 @@ module.exports =
         associations[name] = associationFun
         self.set '_associations', associations
 
-    _getIncludes: (connection, records, cb) ->
+    _getIncludes: (records, cb) ->
         self = this
+
         unless self._includes?
             process.nextTick ->
                 cb null, records
@@ -42,123 +50,108 @@ module.exports =
 
         fetchKeys = (keys) ->
             if keys.length is 0
-                self.hookAfterIncludes? self, connection, keysToFetch
+                self.hookAfterIncludes? self, keysToFetch
                 cb null, records
                 return
 
             key = keys[0]
             rest = keys.slice 1
 
-            self.hookBeforeInclude? self, connection, key
-            self._associations[key].call self, connection, self._includes[key], records, (err, results) ->
-                self.hookAfterInclude? self, connection, key
+            self.hookBeforeInclude? self, key
+            self._associations[key].call self, self._includes[key], records, (err, results) ->
+                self.hookAfterInclude? self, key
                 if err?
                     cb err
                     return
 
                 fetchKeys rest
 
-        self.hookBeforeIncludes? self, connection, keysToFetch
+        self.hookBeforeIncludes? self, keysToFetch
         fetchKeys keysToFetch
 
-    hasOne: (name, model, options) ->
-        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+    hasOne: (name, associatedTable, options) ->
+        this.hasAssociated name, (subIncludes, records, cb) ->
             self = this
-            if 'function' is typeof model then model = model()
-            model = model.connection connection
-            model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless self._table?
-            throw new Error 'no table set on associated model' unless model._table?
+            localAssociatedTable = self._prepareAssociatedTable associatedTable, subIncludes
 
             primaryKey = options?.primaryKey || self._primaryKey
             foreignKey = options?.foreignKey || "#{self._table}_#{self._primaryKey}"
 
             criterion = createCriterion primaryKey, foreignKey, records
 
-            self.hookBeforeHasOneQuery? self, model, connection, name
-            model.where(criterion).find (err, associated) ->
-                self.hookAfterHasOneQuery? self, model, connection, name, err, associated
+            self.hookBeforeHasOne? name, self, localAssociatedTable
+            localAssociatedTable.where(criterion).find (err, associated) ->
+                self.hookAfterHasOne? name, self, localAssociatedTable, err, associated
+
                 return cb err if err?
+
                 setOneInclude name, foreignKey, primaryKey, records, associated
                 cb null, records
 
-    hasMany: (name, model, options) ->
-        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+    hasMany: (name, associatedTable, options) ->
+        this.hasAssociated name, (subIncludes, records, cb) ->
             self = this
-            if 'function' is typeof model then model = model()
-            model = model.connection connection
-            model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless self._table?
-            throw new Error 'no table set on associated model' unless model._table?
+            localAssociatedTable = self._prepareAssociatedTable associatedTable, subIncludes
 
             primaryKey = options?.primaryKey || self._primaryKey
             foreignKey = options?.foreignKey || "#{self._table}_#{self._primaryKey}"
 
             criterion = createCriterion primaryKey, foreignKey, records
 
-            self.hookBeforeHasManyQuery? self, model, connection, name
-            model.where(criterion).find (err, associated) ->
-                self.hookAfterHasManyQuery? self, model, connection, name, err, associated
+            self.hookBeforeHasMany? name, self, localAssociatedTable
+            localAssociatedTable.where(criterion).find (err, associated) ->
+                self.hookAfterHasMany? name, self, localAssociatedTable, err, associated
+
                 return cb err if err?
+
                 setManyIncludes name, foreignKey, primaryKey, records, associated
                 cb null, records
 
-    belongsTo: (name, model, options) ->
-        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+    belongsTo: (name, associatedTable, options) ->
+        this.hasAssociated name, (subIncludes, records, cb) ->
             self = this
-            if 'function' is typeof model then model = model()
-            model = model.connection connection
-            model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless self._table?
-            throw new Error 'no table set on associated model' unless model._table?
+            localAssociatedTable = self._prepareAssociatedTable associatedTable, subIncludes
 
             primaryKey = options?.primaryKey || self._primaryKey
-            foreignKey = options?.foreignKey || "#{model._table}_#{model._primaryKey}"
+            foreignKey = options?.foreignKey || "#{localAssociatedTable._table}_#{localAssociatedTable._primaryKey}"
 
             criterion = createCriterion foreignKey, primaryKey, records
 
-            self.hookBeforeBelongsToQuery? self, model, connection, name
-            model.where(criterion).find (err, associated) ->
-                self.hookAfterBelongsToQuery? self, model, connection, name, err, associated
+            self.hookBeforeBelongsTo? name, self, localAssociatedTable
+            localAssociatedTable.where(criterion).find (err, associated) ->
+                self.hookAfterBelongsTo? name, self, localAssociatedTable, err, associated
+
                 return cb err if err?
+
                 setOneInclude name, primaryKey, foreignKey, records, associated
                 cb null, records
 
-    hasAndBelongsToMany: (name, model, options) ->
-        this.hasAssociated name, (connection, subIncludes, records, cb) ->
+    hasManyThrough: (name, associatedTable, joinTable, options) ->
+        this.hasAssociated name, (subIncludes, records, cb) ->
             self = this
-            if 'function' is typeof model then model = model()
-            model = model.connection connection
-            model = model.includes subIncludes if 'object' is typeof subIncludes
 
-            throw new Error 'no table set on model' unless self._table?
-            throw new Error 'no table set on associated model' unless model._table?
+            localAssociatedTable = self._prepareAssociatedTable associatedTable, subIncludes
 
-            joinTable = options?.joinTable
-            throw new Error 'no join table' unless joinTable?
+            primaryKey = options?.primaryKey || self._primaryKey
+            foreignKey = options?.foreignKey || "#{self._table}_#{self._primaryKey}"
 
-            primaryKey = options.primaryKey || self._primaryKey
-            foreignKey = options.foreignKey || "#{self._table}_#{self._primaryKey}"
-
-            otherPrimaryKey = options.otherPrimaryKey || model._primaryKey
-            otherForeignKey = options.otherForeignKey || "#{model._table}_#{model._primaryKey}"
+            otherPrimaryKey = options?.otherPrimaryKey || localAssociatedTable._primaryKey
+            otherForeignKey = options?.otherForeignKey || "#{localAssociatedTable._table}_#{localAssociatedTable._primaryKey}"
 
             intersectionCriterion =
                 createCriterion primaryKey, foreignKey, records
 
-            query = self._originalMohair.table(joinTable).where(intersectionCriterion)
+            localJoinTable = self._prepareAssociatedTable joinTable
+            localJoinTable = localJoinTable.where(intersectionCriterion)
 
-            sql = self.replacePlaceholders query.sql()
+            self.hookBeforeHasManyThroughJoinTable? name, self, localAssociatedTable, localJoinTable
+            localJoinTable.find (err, intersection) ->
+                self.hookAfterHasManyThroughJoinTable? name, self, localAssociatedTable, localJoinTable, err, results
 
-            self.hookBeforeHasAndBelongsToManyJoinTableQuery? self, model, connection, name
-            connection.query sql, query.params(), (err, results) ->
-                self.hookAfterHasAndBelongsToManyJoinTableQuery? self, model, connection, name, err, results
                 return cb err if err?
-
-                intersection = results.rows
 
                 records.forEach (record) -> record[name] = []
 
@@ -168,9 +161,9 @@ module.exports =
                 criterion =
                     createCriterion otherForeignKey, otherPrimaryKey, intersection
 
-                self.hookBeforeHasAndBelongsToManyQuery? self, model, connection, name
-                model.where(criterion).find (err, associated) ->
-                    self.hookAfterHasAndBelongsToManyQuery? self, model, connection, name, err, associated
+                self.hookBeforeHasManyThrough? name, self, localAssociatedTable, localJoinTable
+                localAssociatedTable.where(criterion).find (err, associated) ->
+                    self.hookAfterHasManyThrough? name, self, localAssociatedTable, localJoinTable, err, associated
                     return cb err if err?
 
                     records.forEach (record) ->
