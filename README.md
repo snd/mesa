@@ -212,13 +212,14 @@ var userTable = userTable.hasMany('projects', projectTable, {
 });
 ```
 
-##### has and belongs to many
+##### has many through
 
-use `hasAndBelongsToMany` if the association uses a join table
+use `hasManyThrough` if the association uses a join table
 
 ```javascript
-var userTable = userTable.hasAndBelongsToMany('projects', projectTable, {
-    joinTable: 'user_project',      // required
+var userProjectTable = mesaWithConnection.table('user_project');
+
+var userTable = userTable.hasManyThrough('projects', projectTable, userProjectTable,
     primaryKey: 'id',               // optional with default: 'id'
     foreignKey: 'user_id',          // optional with default: userTable.getTable() + '_id'
     otherPrimaryKey: 'id',          // optional with default: 'id'
