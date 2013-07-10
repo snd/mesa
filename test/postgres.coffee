@@ -15,12 +15,12 @@ module.exports =
                             cb null, {rows: [{id: 3}]}
                     cb null, connection, done
 
-            userModel = mesa
+            userTable = mesa
                 .connection(getConnection)
                 .table('user')
                 .attributes(['name'])
 
-            userModel.insert {name: 'foo'}, (err, id) ->
+            userTable.insert {name: 'foo'}, (err, id) ->
                 throw err if err?
                 test.done()
 
@@ -35,12 +35,12 @@ module.exports =
                             cb()
                     cb null, connection, done
 
-            userModel = mesa
+            userTable = mesa
                 .connection(getConnection)
                 .table('user')
                 .attributes(['name'])
 
-            userModel.update {name: 'foo'}, (err) ->
+            userTable.update {name: 'foo'}, (err) ->
                 throw err if err?
                 test.done()
 
@@ -55,11 +55,11 @@ module.exports =
                             cb()
                     cb null, connection, done
 
-            userModel = mesa
+            userTable = mesa
                 .connection(getConnection)
                 .table('user')
 
-            userModel.delete (err) ->
+            userTable.delete (err) ->
                 throw err if err?
                 test.done()
 
@@ -74,11 +74,11 @@ module.exports =
                             cb null, {rows: [{x: 1}]}
                     cb null, connection, done
 
-            userModel = mesa
+            userTable = mesa
                 .connection(getConnection)
                 .table('user')
 
-            userModel.first (err) ->
+            userTable.first (err) ->
                 throw err if err?
                 test.done()
 
@@ -93,11 +93,11 @@ module.exports =
                             cb null, {rows: []}
                     cb null, connection, done
 
-            userModel = mesa
+            userTable = mesa
                 .connection(getConnection)
                 .table('user')
 
-            userModel.first (err) ->
+            userTable.first (err) ->
                 throw err if err?
                 test.done()
 
@@ -112,11 +112,11 @@ module.exports =
                             cb null, {rows: [{x: 1}]}
                     cb null, connection, done
 
-            userModel = mesa
+            userTable = mesa
                 .connection(getConnection)
                 .table('user')
 
-            userModel.find (err) ->
+            userTable.find (err) ->
                 throw err if err?
                 test.done()
 
@@ -131,10 +131,10 @@ module.exports =
                             cb null, {rows: []}
                     cb null, connection, done
 
-            userModel = mesa
+            userTable = mesa
                 .connection(getConnection)
                 .table('user')
 
-            userModel.find (err) ->
+            userTable.find (err) ->
                 throw err if err?
                 test.done()
