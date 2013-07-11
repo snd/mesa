@@ -1,6 +1,6 @@
 {
     "name": "mesa",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "description": "simple elegant sql for nodejs",
     "keywords": ["sql", "postgres", "dao", "model", "orm", "fluid", "data", "data layer"],
     "homepage": "http://github.com/snd/mesa",
