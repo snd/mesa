@@ -19,7 +19,7 @@ module.exports =
         self = this
         localTable = if 'function' is typeof table then table() else table
         localTable = localTable.includes subIncludes if 'object' is typeof subIncludes
-        if self.reuseConnectionForIncludes
+        if self.enableConnectionReuseForIncludes
             localTable = localTable.connection self._connection
         return localTable
 

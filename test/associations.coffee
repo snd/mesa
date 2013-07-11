@@ -1,5 +1,7 @@
 mesa = require '../src/postgres'
 
+mesa.enableConnectionReuseForIncludes = true
+
 module.exports =
 
     'associations':

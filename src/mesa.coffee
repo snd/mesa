@@ -74,7 +74,7 @@ module.exports =
     # ------------
 
 
-    reuseConnectionForIncludes: false
+    enableConnectionReuseForIncludes: true
 
     hasAssociated: associations.hasAssociated
     hasOne: associations.hasOne
