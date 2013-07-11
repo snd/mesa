@@ -44,30 +44,55 @@ module.exports =
 
         throw new Error 'empty includes' if keysToFetch.length is 0
 
-        keysToFetch.forEach (key) =>
+        keysToFetch.forEach (key) ->
             unless self._associations? and self._associations[key]?
                 throw new Error "no association: #{key}"
 
-        fetchKeys = (keys) ->
-            if keys.length is 0
+        if self.enableParallelIncludes
+            self.hookBeforeIncludes? self, keysToFetch
+
+            if keysToFetch.length is 0
                 self.hookAfterIncludes? self, keysToFetch
                 cb null, records
                 return
 
-            key = keys[0]
-            rest = keys.slice 1
+            firstError = null
+            doneCount = 0
 
-            self.hookBeforeInclude? self, key
-            self._associations[key].call self, self._includes[key], records, (err, results) ->
-                self.hookAfterInclude? self, key
-                if err?
-                    cb err
+            keysToFetch.forEach (key) ->
+                self.hookBeforeInclude? self, key
+                self._associations[key].call self, self._includes[key], records, (err) ->
+                    self.hookAfterInclude? self, key
+                    doneCount++
+                    if err?
+                        unless firstError?
+                            firstError = err
+                    if doneCount is keysToFetch.length
+                        if firstError?
+                            cb firstError
+                        else
+                            cb null, records
+        else
+            fetchKeys = (keys) ->
+                if keys.length is 0
+                    self.hookAfterIncludes? self, keysToFetch
+                    cb null, records
                     return
 
-                fetchKeys rest
+                key = keys[0]
+                rest = keys.slice 1
 
-        self.hookBeforeIncludes? self, keysToFetch
-        fetchKeys keysToFetch
+                self.hookBeforeInclude? self, key
+                self._associations[key].call self, self._includes[key], records, (err) ->
+                    self.hookAfterInclude? self, key
+                    if err?
+                        cb err
+                        return
+
+                    fetchKeys rest
+
+            self.hookBeforeIncludes? self, keysToFetch
+            fetchKeys keysToFetch
 
     hasOne: (name, associatedTable, options) ->
         this.hasAssociated name, (subIncludes, records, cb) ->
