@@ -10,7 +10,7 @@ while not restricting full access to the underlying database driver and database
 mesa builds on top of [mohair, a simple fluent sql query builder](https://github.com/snd/mohair).
 
 it adds the ability to run queries on connections, process query results, to declare and include
-associations (`hasOne`, `belongsTo`, `hasMany`, `hasAndBelongsToMany`) and more.
+associations (`hasOne`, `belongsTo`, `hasMany`, `hasManyThrough`) and more.
 
 mesa has been battle tested in a medium sized (8 heroku dynos) production environment
 for half a year.
