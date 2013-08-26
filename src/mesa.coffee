@@ -56,6 +56,8 @@ module.exports =
         this.set '_mohair', this._mohair.order arg
     group: (arg) ->
         this.set '_mohair', this._mohair.group arg
+    with: (arg) ->
+        this.set '_mohair', this._mohair.with arg
 
     # misc
     # ----
