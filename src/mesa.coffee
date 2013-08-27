@@ -62,9 +62,11 @@ module.exports =
     # misc
     # ----
 
-    assertReady: ->
+    assertTable: ->
         unless this._table?
-            throw new Error 'mesa requires `table()` to be called before any query'
+            throw new Error 'mesa requires `table()` to be called before an insert, update or delete query'
+
+    assertConnection: ->
         unless this._connection?
             throw new Error 'mesa requires `connection()` to be called before any query'
 

@@ -50,7 +50,7 @@ module.exports =
                 .connection(-> test.fail)
 
             test.throws ->
-                userTable.find {id: 1}, -> test.fail()
+                userTable.delete -> test.fail()
             test.done()
 
         "when attributes wasn't called before insert": (test) ->

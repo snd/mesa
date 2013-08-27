@@ -34,7 +34,8 @@ module.exports.returning = (arg) ->
 module.exports.insert = (data, cb) ->
     self = this
 
-    self.assertReady()
+    self.assertConnection()
+    self.assertTable()
     self.assertAttributes()
 
     cleanData = _.pick data, self._attributes
@@ -71,7 +72,8 @@ module.exports.insert = (data, cb) ->
 module.exports.insertMany = (array, cb) ->
     self = this
 
-    self.assertReady()
+    self.assertConnection()
+    self.assertTable()
     self.assertAttributes()
 
     query = self._mohair.insertMany array.map (x) => _.pick x, self._attributes
@@ -100,7 +102,8 @@ module.exports.insertMany = (array, cb) ->
 module.exports.delete = (cb) ->
     self = this
 
-    self.assertReady()
+    self.assertConnection()
+    self.assertTable()
 
     query = self._mohair.delete()
     sql = self.replacePlaceholders query.sql()
@@ -122,7 +125,8 @@ module.exports.delete = (cb) ->
 module.exports.update = (updates, cb) ->
     self = this
 
-    self.assertReady()
+    self.assertConnection()
+    self.assertTable()
     self.assertAttributes()
 
     cleanUpdates = _.pick updates, self._attributes
@@ -153,7 +157,7 @@ module.exports.update = (updates, cb) ->
 module.exports.first = (cb) ->
     self = this
 
-    self.assertReady()
+    self.assertConnection()
 
     sql = self.replacePlaceholders self.sql()
     params = self.params()
@@ -194,7 +198,7 @@ module.exports.first = (cb) ->
 module.exports.find = (cb) ->
     self = this
 
-    self.assertReady()
+    self.assertConnection()
 
     sql = self.replacePlaceholders self.sql()
     params = self.params()
@@ -236,7 +240,7 @@ module.exports.find = (cb) ->
 module.exports.exists = (cb) ->
     self = this
 
-    self.assertReady()
+    self.assertConnection()
 
     query =  self._mohair
     sql = self.replacePlaceholders query.sql()
