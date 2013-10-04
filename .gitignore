@@ -1,6 +1,5 @@
 **.DS_Store
 node_modules/**
 npm-debug.log
-src/*.js
 test/*.js
 text.md
