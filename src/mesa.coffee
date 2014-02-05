@@ -1,92 +1,238 @@
 mohair = require 'mohair'
-
-associations = require './associations'
+q = require 'q'
+_ = require 'underscore'
 
 module.exports =
 
-    # default
-    # --------
+###################################################################################
+# fluent
 
-    _mohair: mohair
-    _primaryKey: 'id'
+    clone: ->
+        Object.create this
 
-    # setter
-    # ------
+    # prototypically inherit from this
+    # and set key to value
 
-    set: (key, value) ->
-        object = Object.create this
+    fluent: (key, value) ->
+        object = this.clone()
         object[key] = value
         object
 
+    # call: (f, args...) ->
+    #     f.apply this, args
+
+###################################################################################
+# setters
+
+    $mohair: mohair.escape((string) -> "\"#{string}\"")
+    $returning: '*'
+    $primaryKey: 'id'
+    $allowedColumns: []
+    $returnFirst: false
+
+    returning: (arg) ->
+        this.fluent '$returning', arg
     connection: (arg) ->
-        this.set '_connection', arg
-    attributes: (arg) ->
-        this.set '_attributes', arg
+        this.fluent '$connection', arg
+    allowedColumns: (columns) ->
+        this.fluent '$allowedColumns', this.$allowedColumns.concat(columns)
     primaryKey: (arg) ->
-        this.set '_primaryKey', arg
-    includes: (arg) ->
-        this.set '_includes', arg
+        this.fluent '$primaryKey', arg
 
     table: (arg) ->
-        this.set('_table', arg).set '_mohair', this._mohair.table arg
+        this
+            .fluent('$table', arg)
+            .fluent '$mohair', this.$mohair.table arg
 
-    # mohair passthroughs
-    # -------------------
+    returnFirst: (arg = true) ->
+        this.fluent '$returnFirst', arg
+
+###################################################################################
+# pipelining
+
+    $beforeInsert: []
+    $afterInsert: []
+    $beforeUpdate: []
+    $afterUpdate: []
+    $afterSelect: []
+    $afterDelete: []
+
+    beforeInsert: (args...) ->
+        this.fluent '$beforeInsert', this.$beforeInsert.concat(args)
+    afterInsert: (args...) ->
+        this.fluent '$afterInsert', this.$afterInsert.concat(args)
+    beforeUpdate: (args...) ->
+        this.fluent '$beforeUpdate', this.$beforeUpdate.concat(args)
+    afterUpdate: (args...) ->
+        this.fluent '$afterUpdate', this.$afterUpdate.concat(args)
+    # run on the records returned by a delete
+    afterDelete: (args...) ->
+        this.fluent '$afterUpdate', this.$afterUpdate.concat(args)
+    afterSelect: (args...) ->
+        this.fluent '$afterSelect', this.$afterSelect.concat(args)
+
+    runPipeline: (pipeline, data) ->
+        reducer = (soFar, f) ->
+            soFar.then f
+        pipeline.reduce reducer, q(data)
+
+###################################################################################
+# pass through to mohair
 
     sql: ->
-        this._mohair.sql()
+        this.replacePlaceholders this.$mohair.sql()
     params: ->
-        this._mohair.params()
+        this.$mohair.params()
 
     raw: (args...) ->
-        this._mohair.raw args...
+        this.$mohair.raw args...
 
     where: (args...) ->
-        this.set '_mohair', this._mohair.where args...
+        this.fluent '$mohair', this.$mohair.where args...
     join: (args...) ->
-        this.set '_mohair', this._mohair.join args...
+        this.fluent '$mohair', this.$mohair.join args...
 
     select: (args...) ->
-        this.set '_mohair', this._mohair.select args...
+        this.fluent '$mohair', this.$mohair.select args...
     limit: (arg) ->
-        this.set '_mohair', this._mohair.limit arg
+        this.fluent '$mohair', this.$mohair.limit arg
     offset: (arg) ->
-        this.set '_mohair', this._mohair.offset arg
+        this.fluent '$mohair', this.$mohair.offset arg
     order: (arg) ->
-        this.set '_mohair', this._mohair.order arg
+        this.fluent '$mohair', this.$mohair.order arg
     group: (arg) ->
-        this.set '_mohair', this._mohair.group arg
+        this.fluent '$mohair', this.$mohair.group arg
     with: (arg) ->
-        this.set '_mohair', this._mohair.with arg
+        this.fluent '$mohair', this.$mohair.with arg
 
-    # misc
-    # ----
+###################################################################################
+# connection
 
-    assertTable: ->
-        unless this._table?
-            throw new Error 'mesa requires `table()` to be called before an insert, update or delete query'
+    getConnection: ->
+        unless this.$connection?
+            throw new Error "the method you are calling requires a call to connection() before it"
+        if 'function' is typeof this.$connection
+            this.$connection cb
+            return
+        setTimeout ->
+            cb null, this.$connection
 
-    assertConnection: ->
-        unless this._connection?
-            throw new Error 'mesa requires `connection()` to be called before any query'
+    query: (sql, params) ->
+        d = q.defer()
+        self.getConnection (err, connection, done) ->
+            if err?
+                done()?
+                d.reject err
+                return
+            connection.query sql, params, (err, results) ->
+                done()?
+                if err?
+                    d.reject err
+                    return
+                d.resolve results
 
-    assertAttributes: ->
-        unless this._attributes?
-            throw new Error 'mesa requires `attributes()` to be called before an insert or update query'
+        d.promise
 
-    # associations
-    # ------------
+###################################################################################
+# command
 
+    insert: (dataOrArray) ->
+        array = if Array.isArray dataOrArray then dataOrArray else [dataOrArray]
+        self.returnFirst().insertMany array
 
-    enableConnectionReuseForIncludes: false
-    enableParallelIncludes: false
+    insertMany: (array) ->
+        self = this
 
-    hasAssociated: associations.hasAssociated
-    hasOne: associations.hasOne
-    hasMany: associations.hasMany
-    belongsTo: associations.belongsTo
-    hasManyThrough: associations.hasManyThrough
-    hasOneThrough: associations.hasOneThrough
+        beforeInsert = (data) ->
+            self.runPipeline self.$beforeInsert, data
 
-    _getIncludes: associations._getIncludes
-    _prepareAssociatedTable: associations._prepareAssociatedTable
+        q.all(array.map beforeInsert).then (processedArray) ->
+            cleanArray = processedArray.map self.pickAllowedColumns
+
+            cleanArray.forEach (cleanData) ->
+                if Object.keys(cleanData).length is 0
+                    return q.reject new Error 'nothing to insert'
+
+            query = self.$mohair.insertMany cleanArray
+            sql = self.replacePlaceholders query.sql()
+
+            if self.$returning?
+                sql += 'RETURNING ' + self.$returning
+
+            self.query(sql, query.params()).then (results) ->
+                self.afterQuery self.$afterInsert, results
+
+    update: (data) ->
+        self = this
+
+        self.runPipeline(self.$beforeUpdate, data).then (processedData) ->
+            cleanData = self.pickAllowedColumns processedData
+
+            if Object.keys(cleanData).length is 0
+                return q.reject new Error 'nothing to update'
+
+            query = self.$mohair.update cleanData
+            sql = self.replacePlaceholders query.sql()
+
+            if self.$returning?
+                sql += 'RETURNING ' + self.$returning
+
+            self.query(sql, query.params()).then (results) ->
+                self.afterQuery self.$afterUpdate, results
+
+    delete: ->
+        self = this
+
+        query = self.$mohair.delete()
+        sql = self.replacePlaceholders query.sql()
+
+        if self.$returning?
+            sql += 'RETURNING ' + self.$returning
+
+        self.query(sql, query.params()).then (results) ->
+            self.afterQuery self.$afterDelete, results
+
+###################################################################################
+# query
+
+    find: ->
+        self = this
+
+        self.query(self.sql(), self.params()).then (results) ->
+            self.afterQuery self.$afterSelect, results
+
+    exists: ->
+        self = this
+
+        self.query(self.sql(), self.params()).then (results) ->
+            results.rows? and results.rows.length isnt 0
+
+###################################################################################
+# easy sugar
+
+    first: ->
+        this.limit(1)
+            .returnFirst()
+            .find()
+
+###################################################################################
+# util
+
+    replacePlaceholders: (sql) ->
+        # replace ?, ?, ... with $1, $2, ...
+        index = 1
+        sql.replace /\?/g, -> '$' + index++
+
+    pickAllowedColumns: (data) ->
+        _.pick data, self.$allowedColumns
+
+    afterQuery: (pipeline, results) ->
+        if results.rows?
+            processedRows = q.all results.rows.map (row) ->
+                self.runPipeline pipeline, row
+            if self.$returnFirst
+                processedRows[0]
+            else
+                processedRows
+        else
+            results

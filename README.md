@@ -319,4 +319,6 @@ tell node-postgres to return the connection to the pool.
 otherwise you will leak that connection, which is **very bad** since
 your application will run out of connections and hang.
 
+### changelog
+
 ### license: MIT

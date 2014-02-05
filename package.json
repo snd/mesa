@@ -1,8 +1,8 @@
 {
     "name": "mesa",
-    "version": "0.7.0",
-    "description": "simple elegant sql for nodejs",
-    "keywords": ["sql", "postgres", "dao", "model", "orm", "fluid", "data", "data layer"],
+    "version": "1.0.0-alpha.1",
+    "description": "simple sql for nodejs",
+    "keywords": ["sql", "postgres", "dao", "model", "orm", "fluid", "data", "data layer", "simple"],
     "homepage": "http://github.com/snd/mesa",
     "author": {
         "name": "Maximilian Krüger",
@@ -25,12 +25,12 @@
         "node": ">=0.8.5"
     },
     "dependencies": {
-        "mohair": "0.11.0",
-        "underscore": "1.4.4"
+        "mohair": "0.11.1",
+        "underscore": "1.5.2"
     },
     "devDependencies": {
-        "coffee-script": "1.6.3",
-        "nodeunit": "0.8"
+        "coffee-script": "1.7.1",
+        "nodeunit": "0.8.4"
     },
     "main": "src/postgres",
     "scripts": {
