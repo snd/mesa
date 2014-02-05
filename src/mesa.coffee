@@ -38,13 +38,13 @@ module.exports =
         this.fluent '$allowedColumns', this.$allowedColumns.concat(columns)
     primaryKey: (arg) ->
         this.fluent '$primaryKey', arg
-
     table: (arg) ->
         this.fluent('$table', arg)
             .fluent '$mohair', this.$mohair.table arg
-
     returnFirst: (arg = true) ->
         this.fluent '$returnFirst', arg
+    debug: (arg) ->
+        this.fluent '$debug', arg
 
 ###################################################################################
 # pipelining
@@ -120,6 +120,8 @@ module.exports =
 
     query: (sql, params) ->
         self = this
+
+        self.$debug('MESA', 'QUERY', sql, params)?
 
         d = q.defer()
         self.getConnection (err, connection, done) ->
