@@ -26,13 +26,14 @@
     },
     "dependencies": {
         "mohair": "0.11.1",
-        "underscore": "1.5.2"
+        "underscore": "1.5.2",
+        "q": "1.0.0"
     },
     "devDependencies": {
         "coffee-script": "1.7.1",
         "nodeunit": "0.8.4"
     },
-    "main": "src/postgres",
+    "main": "src/mesa",
     "scripts": {
         "prepublish": "coffee --bare --compile --output src src/*.coffee",
         "postpublish": "rm src/*.js",
