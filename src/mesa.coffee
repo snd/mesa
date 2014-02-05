@@ -40,8 +40,7 @@ module.exports =
         this.fluent '$primaryKey', arg
 
     table: (arg) ->
-        this
-            .fluent('$table', arg)
+        this.fluent('$table', arg)
             .fluent '$mohair', this.$mohair.table arg
 
     returnFirst: (arg = true) ->
@@ -108,16 +107,20 @@ module.exports =
 ###################################################################################
 # connection
 
-    getConnection: ->
-        unless this.$connection?
+    getConnection: (cb) ->
+        self = this
+
+        unless self.$connection?
             throw new Error "the method you are calling requires a call to connection() before it"
-        if 'function' is typeof this.$connection
-            this.$connection cb
+        if 'function' is typeof self.$connection
+            self.$connection cb
             return
         setTimeout ->
-            cb null, this.$connection
+            cb null, self.$connection
 
     query: (sql, params) ->
+        self = this
+
         d = q.defer()
         self.getConnection (err, connection, done) ->
             if err?
@@ -137,6 +140,8 @@ module.exports =
 # command
 
     insert: (dataOrArray) ->
+        self = this
+
         array = if Array.isArray dataOrArray then dataOrArray else [dataOrArray]
         self.returnFirst().insertMany array
 
@@ -147,17 +152,15 @@ module.exports =
             self.runPipeline self.$beforeInsert, data
 
         q.all(array.map beforeInsert).then (processedArray) ->
-            cleanArray = processedArray.map self.pickAllowedColumns
+            cleanArray = processedArray.map (data) ->
+                self.pickAllowedColumns data
 
             cleanArray.forEach (cleanData) ->
                 if Object.keys(cleanData).length is 0
                     return q.reject new Error 'nothing to insert'
 
             query = self.$mohair.insertMany cleanArray
-            sql = self.replacePlaceholders query.sql()
-
-            if self.$returning?
-                sql += 'RETURNING ' + self.$returning
+            sql = self.appendReturning self.replacePlaceholders query.sql()
 
             self.query(sql, query.params()).then (results) ->
                 self.afterQuery self.$afterInsert, results
@@ -172,10 +175,7 @@ module.exports =
                 return q.reject new Error 'nothing to update'
 
             query = self.$mohair.update cleanData
-            sql = self.replacePlaceholders query.sql()
-
-            if self.$returning?
-                sql += 'RETURNING ' + self.$returning
+            sql = self.appendReturning self.replacePlaceholders query.sql()
 
             self.query(sql, query.params()).then (results) ->
                 self.afterQuery self.$afterUpdate, results
@@ -184,10 +184,7 @@ module.exports =
         self = this
 
         query = self.$mohair.delete()
-        sql = self.replacePlaceholders query.sql()
-
-        if self.$returning?
-            sql += 'RETURNING ' + self.$returning
+        sql = self.appendReturning self.replacePlaceholders query.sql()
 
         self.query(sql, query.params()).then (results) ->
             self.afterQuery self.$afterDelete, results
@@ -224,9 +221,13 @@ module.exports =
         sql.replace /\?/g, -> '$' + index++
 
     pickAllowedColumns: (data) ->
+        self = this
+
         _.pick data, self.$allowedColumns
 
     afterQuery: (pipeline, results) ->
+        self = this
+
         if results.rows?
             processedRows = q.all results.rows.map (row) ->
                 self.runPipeline pipeline, row
@@ -236,3 +237,11 @@ module.exports =
                 processedRows
         else
             results
+
+    appendReturning: (sql) ->
+        self = this
+
+        if self.$returning?
+            sql + ' RETURNING ' + self.$returning
+        else
+            sql
