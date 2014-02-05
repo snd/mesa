@@ -229,12 +229,13 @@ module.exports =
         self = this
 
         if results.rows?
-            processedRows = q.all results.rows.map (row) ->
+            processRow = (row) ->
                 self.runPipeline pipeline, row
-            if self.$returnFirst
-                processedRows[0]
-            else
-                processedRows
+            q.all(results.rows.map processRow).then (processedRows) ->
+                if self.$returnFirst
+                    processedRows[0]
+                else
+                    processedRows
         else
             results
 
