@@ -58,6 +58,10 @@ module.exports =
         this.set '_mohair', this._mohair.group arg
     with: (arg) ->
         this.set '_mohair', this._mohair.with arg
+    having: (args...) ->
+        this.set '_mohair', this._mohair.having args...
+    cascade: ->
+        this.set '_mohair', this._mohair.cascade true
 
     # misc
     # ----
