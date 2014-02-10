@@ -217,7 +217,7 @@ module.exports =
                 throw err if err?
                 test.done()
 
-        'delete CASCADE': (test) ->
+        'delete with cascade': (test) ->
             test.expect 2
 
             connection =
