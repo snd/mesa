@@ -217,6 +217,23 @@ module.exports =
                 throw err if err?
                 test.done()
 
+        'delete CASCADE': (test) ->
+            test.expect 2
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'DELETE FROM "user" WHERE (id = $1) AND (count = $2) CASCADE'
+                    test.deepEqual params, [1, 8]
+                    cb()
+
+            userTable = mesa
+                .connection(connection)
+                .table('user')
+
+            userTable.where({ id : 1, count : 8}).cascade().delete (err) ->
+                throw err if err?
+                test.done()
+
         'update': (test) ->
             test.expect 2
 
