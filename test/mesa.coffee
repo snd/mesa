@@ -422,3 +422,47 @@ module.exports =
                 throw err if err?
                 test.equal userId, 500
                 test.done()
+
+    'mixin':
+
+        'add to call chain and do not add to call chain': (test) ->
+            test.expect 9
+
+            con1 =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'SELECT name FROM "posts" LIMIT $1 OFFSET $2'
+                    test.deepEqual params, [2,0]
+                    cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
+
+            con2 =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'SELECT name FROM "comments" LIMIT $1 OFFSET $2'
+                    test.deepEqual params, [2,2]
+                    cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
+
+            con3 =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'SELECT name FROM "authors"'
+                    test.deepEqual params, []
+                    cb null, {rows: [{name: 'foo'}, {name: 'bar'}]}
+
+            perPage = 2
+            paginate = (page) ->
+                ->
+                    if page then @.limit(perPage).offset((page-1)*perPage) else @
+
+            page = 1
+            mesa.connection(con1).table('posts').mixin(paginate page).select('name').find (err, posts) ->
+                throw err if err?
+                test.deepEqual posts, [{name: 'foo'}, {name: 'bar'}]
+
+                page = 2
+                mesa.connection(con2).table('comments').mixin(paginate page).select('name').find (err, comments) ->
+                    throw err if err?
+                    test.deepEqual comments, [{name: 'foo'}, {name: 'bar'}]
+
+                    page = null
+                    mesa.connection(con3).table('authors').mixin(paginate page).select('name').find (err, authors) ->
+                        throw err if err?
+                        test.deepEqual authors, [{name: 'foo'}, {name: 'bar'}]
+                        test.done()
