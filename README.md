@@ -127,7 +127,13 @@ userTable
     .where({name: 'alice'})
     .update({name: 'bob'}, function(err) {
     });
+```
 
+multiple calls to `where` are anded together.
+
+##### update using FROM clause
+
+```javascript
 var customerTable = mesaWithConnection.table('customer');
 customerTable
     .from("project AS p")
@@ -137,8 +143,6 @@ customerTable
     .update({status: 'active'}, function(err) {
     });
 ```
-
-multiple calls to `where` are anded together.
 
 #### query
 
