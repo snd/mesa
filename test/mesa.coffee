@@ -287,6 +287,46 @@ module.exports =
                     throw err if err?
                     test.done()
 
+        'update with from': (test) ->
+            test.expect 2
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'UPDATE "author" SET "name" = $1, "email" = $2 FROM addresses AS a WHERE (((author.id = $3) AND (author.name = $4)) AND (a.author_id = author.id)) AND (a.city = $5)'
+                    test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo', 'abcdef']
+                    cb()
+
+            userTable = mesa
+                .connection(connection)
+                .table('author')
+                .attributes(['name', 'email'])
+
+            updates = {name: 'bar', x: 5, y: 8, email: 'bar@example.com'}
+
+            userTable.from("addresses AS a").where("author.id": 3).where("author.name": 'foo').where("a.author_id = author.id").where("a.city": "abcdef").update updates, (err) ->
+                throw err if err?
+                test.done()
+
+        'update with from (to match README)': (test) ->
+            test.expect 2
+
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'UPDATE "customer" SET "status" = $1 FROM project AS p WHERE ((customer.status = $2) AND (customer.id = p.customer_id)) AND (p.status = $3)'
+                    test.deepEqual params, ['active', 'dormant', 'in_progress']
+                    cb()
+
+            customerTable = mesa
+                .connection(connection)
+                .table('customer')
+                .attributes(['status'])
+
+            updates = {name: 'bar', status: 'active', y: 8, email: 'bar@example.com'}
+
+            customerTable.from("project AS p").where("customer.status": "dormant").where("customer.id = p.customer_id").where("p.status": "in_progress").update updates, (err) ->
+                throw err if err?
+                test.done()
+
     'query':
 
         'find all': (test) ->

@@ -127,6 +127,15 @@ userTable
     .where({name: 'alice'})
     .update({name: 'bob'}, function(err) {
     });
+
+var customerTable = mesaWithConnection.table('customer');
+customerTable
+    .from("project AS p")
+    .where({"customer.status": 'dormant'})
+    .where("customer.id = p.customer_id")
+    .where({"p.status": 'in_progress'})
+    .update({status: 'active'}, function(err) {
+    });
 ```
 
 multiple calls to `where` are anded together.
