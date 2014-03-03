@@ -126,11 +126,11 @@ module.exports =
         d = q.defer()
         self.getConnection (err, connection, done) ->
             if err?
-                done()?
+                done?()
                 d.reject err
                 return
             connection.query sql, params, (err, results) ->
-                done()?
+                done?()
                 if err?
                     d.reject err
                     return
