@@ -2,6 +2,36 @@ mesa = require '../src/postgres'
 
 module.exports =
 
+    'escape table names':
+
+        'should escape the table names without a schema': (test) ->
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'INSERT INTO "schema"("name", "email") VALUES ($1, $2) RETURNING id'
+                    cb null, {rows: [{id: 3}]}
+
+            userTable = mesa
+                .connection(connection)
+                .table('schema')
+                .attributes(['name', 'email'])
+                .insert {name: 'foo', email: 'foo'}, (err, id) ->
+                    throw err if err?
+                    test.done()
+
+        'should escape the table names with a schema': (test) ->
+            connection =
+                query: (sql, params, cb) ->
+                    test.equal sql, 'INSERT INTO "schema"."user"("name", "email") VALUES ($1, $2) RETURNING id'
+                    cb null, {rows: [{id: 3}]}
+
+            userTable = mesa
+                .connection(connection)
+                .table('schema.user')
+                .attributes(['name', 'email'])
+                .insert {name: 'foo', email: 'foo'}, (err, id) ->
+                    throw err if err?
+                    test.done()
+
     'mesa controlled connection':
 
         'done is called on insert': (test) ->
