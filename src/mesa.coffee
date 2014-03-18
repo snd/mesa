@@ -1,5 +1,5 @@
 mohair = require 'mohair'
-q = require 'q'
+Promise = require 'bluebird'
 _ = require 'underscore'
 
 module.exports =
