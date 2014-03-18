@@ -7,7 +7,7 @@ mesa = require './mesa'
 module.exports = Object.create mesa
 
 # enable postgres escaping
-mohair = module.exports._mohair.escape((string) -> "\"#{string}\"")
+mohair = module.exports._mohair.escape (string) -> string.split(".").map((str) -> "\"#{str}\"").join '.'
 module.exports._mohair = mohair
 module.exports._originalMohair = mohair
 
