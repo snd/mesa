@@ -79,7 +79,7 @@ module.exports =
 # pass through to mohair
 
     sql: ->
-        this.replacePlaceholders this.$mohair.sql()
+        this.$mohair.sql()
     params: ->
         this.$mohair.params()
 
@@ -197,13 +197,17 @@ module.exports =
     find: ->
         self = this
 
-        self.query(self.sql(), self.params()).then (results) ->
+        sql = self.replacePlaceholders self.sql()
+
+        self.query(sql, self.params()).then (results) ->
             self.afterQuery self.$afterSelect, results
 
     exists: ->
         self = this
 
-        self.query(self.sql(), self.params()).then (results) ->
+        sql = self.replacePlaceholders self.sql()
+
+        self.query(sql, self.params()).then (results) ->
             results.rows? and results.rows.length isnt 0
 
 ###################################################################################
