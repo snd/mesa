@@ -73,7 +73,7 @@ module.exports =
     runPipeline: (pipeline, data) ->
         reducer = (soFar, f) ->
             soFar.then f
-        pipeline.reduce reducer, q(data)
+        pipeline.reduce reducer, Promise.resolve data
 
 ###################################################################################
 # pass through to mohair
@@ -123,20 +123,18 @@ module.exports =
 
         self.$debug('MESA', 'QUERY', sql, params)?
 
-        d = q.defer()
-        self.getConnection (err, connection, done) ->
-            if err?
-                done?()
-                d.reject err
-                return
-            connection.query sql, params, (err, results) ->
-                done?()
-                if err?
-                    d.reject err
-                    return
-                d.resolve results
-
-        d.promise
+        new Promise (resolve, reject) ->
+          self.getConnection (err, connection, done) ->
+              if err?
+                  done?()
+                  reject err
+                  return
+              connection.query sql, params, (err, results) ->
+                  done?()
+                  if err?
+                      reject err
+                      return
+                  resolve results
 
 ###################################################################################
 # command
@@ -153,13 +151,13 @@ module.exports =
         beforeInsert = (data) ->
             self.runPipeline self.$beforeInsert, data
 
-        q.all(array.map beforeInsert).then (processedArray) ->
+        Promise.all(array.map beforeInsert).then (processedArray) ->
             cleanArray = processedArray.map (data) ->
                 self.pickAllowedColumns data
 
             cleanArray.forEach (cleanData) ->
                 if Object.keys(cleanData).length is 0
-                    return q.reject new Error 'nothing to insert'
+                    return Promise.reject new Error 'nothing to insert'
 
             query = self.$mohair.insertMany cleanArray
             sql = self.appendReturning self.replacePlaceholders query.sql()
@@ -174,7 +172,7 @@ module.exports =
             cleanData = self.pickAllowedColumns processedData
 
             if Object.keys(cleanData).length is 0
-                return q.reject new Error 'nothing to update'
+                return Promise.reject new Error 'nothing to update'
 
             query = self.$mohair.update cleanData
             sql = self.appendReturning self.replacePlaceholders query.sql()
@@ -237,7 +235,7 @@ module.exports =
         if results.rows?
             processRow = (row) ->
                 self.runPipeline pipeline, row
-            q.all(results.rows.map processRow).then (processedRows) ->
+            Promise.all(results.rows.map processRow).then (processedRows) ->
                 if self.$returnFirst
                     processedRows[0]
                 else
