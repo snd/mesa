@@ -1,6 +1,6 @@
 # mesa
 
-[![Build Status](https://travis-ci.org/snd/mesa.png)](https://travis-ci.org/snd/mesa)
+[![Build Status](https://travis-ci.org/snd/mesa.svg?branch=master)](https://travis-ci.org/snd/mesa)
 
 **simple elegant sql for nodejs**
 
