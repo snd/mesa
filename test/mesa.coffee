@@ -292,8 +292,8 @@ module.exports =
 
             connection =
                 query: (sql, params, cb) ->
-                    test.equal sql, 'UPDATE "author" SET "name" = $1, "email" = $2 FROM addresses AS a WHERE (((author.id = $3) AND (author.name = $4)) AND (a.author_id = author.id)) AND (a.city = $5)'
-                    test.deepEqual params, ['bar', 'bar@example.com', 3, 'foo', 'abcdef']
+                    test.equal sql, 'UPDATE "author" SET "name" = $1, "email" = $2 FROM addresses AS a, (SELECT * FROM contacts WHERE status = $3) AS c WHERE (((((author.id = $4) AND (author.name = $5)) AND (a.author_id = author.id)) AND (c.author_id = author.id)) AND (a.city = $6)) AND (c.name = $7)'
+                    test.deepEqual params, ['bar', 'bar@example.com', 'active', 3, 'foo', 'abcdef', 'bar']
                     cb()
 
             userTable = mesa
@@ -303,7 +303,7 @@ module.exports =
 
             updates = {name: 'bar', x: 5, y: 8, email: 'bar@example.com'}
 
-            userTable.from("addresses AS a").where("author.id": 3).where("author.name": 'foo').where("a.author_id = author.id").where("a.city": "abcdef").update updates, (err) ->
+            userTable.from("addresses AS a, (SELECT * FROM contacts WHERE status = ?) AS c", "active").where("author.id": 3).where("author.name": 'foo').where("a.author_id = author.id").where("c.author_id = author.id").where("a.city": "abcdef").where("c.name": "bar").update updates, (err) ->
                 throw err if err?
                 test.done()
 
