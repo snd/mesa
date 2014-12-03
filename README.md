@@ -170,6 +170,33 @@ userTable
     });
 ```
 
+##### mixins
+
+```javascript
+var paginate = function(page) {
+    var perPage = 10;
+    return function() {
+        return page ? this.limit(perPage).offset((page - 1) * perPage) : this;
+    };
+};
+
+var projectsTable = mesaWithConnection.table('projects');
+projectsTable
+    .select('projects.*')
+    .where('customer = ?', 'foo')
+    .mixin(paginate(2))
+    .find(function(err, projects) {
+    });
+
+var postsTable = mesaWithConnection.table('posts');
+postsTable
+    .select('posts.*')
+    .where('author = ?', 'bar')
+    .mixin(paginate(3))
+    .find(function(err, posts) {
+    });
+```
+
 #### associations
 
 ##### has one

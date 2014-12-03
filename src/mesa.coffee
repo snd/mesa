@@ -58,6 +58,11 @@ module.exports =
         this.set '_mohair', this._mohair.group arg
     with: (arg) ->
         this.set '_mohair', this._mohair.with arg
+    mixin: (fn, args...) ->
+        m = fn.apply this, args
+        unless m
+            throw new Error 'mixin must be called with a function that returns a value'
+        m
 
     # misc
     # ----
