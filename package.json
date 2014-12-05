@@ -1,44 +1,54 @@
 {
-    "name": "mesa",
-    "version": "1.0.0-alpha.5",
-    "description": "simple sql for nodejs",
-    "keywords": ["sql", "postgres", "dao", "model", "orm", "fluid", "data", "data layer", "simple"],
+  "name": "mesa",
+  "version": "1.0.0-alpha.6",
+  "description": "simple sql for nodejs",
+  "keywords": [
+    "sql",
+    "postgres",
+    "dao",
+    "model",
+    "orm",
+    "fluid",
+    "data",
+    "data layer",
+    "simple"
+    ],
     "homepage": "http://github.com/snd/mesa",
     "author": {
-        "name": "Maximilian Krüger",
-        "email": "kruemaxi@gmail.com",
-        "url": "http://github.com/snd"
+      "name": "Maximilian Krüger",
+      "email": "kruemaxi@gmail.com",
+      "url": "http://github.com/snd"
     },
     "bugs": {
-        "url": "http://github.com/snd/mesa/issues",
-        "email": "kruemaxi@gmail.com"
+      "url": "http://github.com/snd/mesa/issues",
+      "email": "kruemaxi@gmail.com"
     },
     "repository": {
-        "type": "git",
-        "url": "git://github.com/snd/mesa.git"
+      "type": "git",
+      "url": "git://github.com/snd/mesa.git"
     },
     "licenses": {
-        "type": "MIT",
-        "url": "git://github.com/snd/mesa/LICENSE"
+      "type": "MIT",
+      "url": "git://github.com/snd/mesa/LICENSE"
     },
     "engines": {
-        "node": ">=0.8.5"
+      "node": ">=0.8.0"
     },
     "dependencies": {
-        "mohair": "0.12.0",
-        "underscore": "1.5.2",
-        "bluebird": "1.2.1"
+      "mohair": "0.12.0",
+      "bluebird": "2.3.11"
     },
     "devDependencies": {
-        "coffee-script": "1.7.1",
-        "nodeunit": "0.8.4"
+      "coffee-script": "1.8.0",
+      "nodeunit": "0.9.0",
+      "pg": "4.1.0"
     },
-    "main": "src/mesa",
     "scripts": {
-        "prepublish": "coffee --bare --compile --output src src/*.coffee",
-        "postpublish": "rm src/*.js",
-        "pretest": "coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
-        "posttest": "rm src/*.js && rm test/*.js",
-        "test": "nodeunit test/*.js"
-    }
+      "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
+      "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
+      "pretest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
+      "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee",
+      "clean": "rm src/*.js"
+    },
+    "main": "src/mesa"
 }
