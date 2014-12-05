@@ -1,8 +1,12 @@
 # mesa
 
-[![Build Status](https://travis-ci.org/snd/mesa.png)](https://travis-ci.org/snd/mesa)
+[![NPM version](https://badge.fury.io/js/mesa.svg)](http://badge.fury.io/js/mesa)
+[![Build Status](https://travis-ci.org/snd/mesa.svg?branch=master)](https://travis-ci.org/snd/mesa/branches)
+[![Dependencies](https://david-dm.org/snd/mesa.svg)](https://david-dm.org/snd/mesa)
 
-**simple elegant sql for nodejs**
+> simply elegant sql for nodejs
+
+## background
 
 mesa is not an orm. it aims to help as much as possible with the construction, composition and execution of sql queries
 while not restricting full access to the underlying database driver and database in any way.
@@ -18,6 +22,8 @@ for half a year.
 mesa uses criterion for sql-where-conditions.
 consult the [criterion readme](https://github.com/snd/criterion)
 and [mohair readme](https://github.com/snd/mohair) to get the full picture of what is possible with mesa.
+
+## get started
 
 ### install
 
@@ -319,6 +325,22 @@ tell node-postgres to return the connection to the pool.
 otherwise you will leak that connection, which is **very bad** since
 your application will run out of connections and hang.
 
-### changelog
+## changelog
 
-### license: MIT
+### 
+
+## [license: MIT](LICENSE)
+
+## TODO
+
+- integration tests
+  - just real integration tests
+- better debugging
+- unit test that escape works with schemas
+- function to wrap every result in a class
+  - could use the pipelining
+- improve keywords in package.json
+- find a better solution for allowedColumns
+- test those really hardcore scenarios with mesas integration tests
+- embeds
+- log query completion
