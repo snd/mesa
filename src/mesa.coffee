@@ -1,252 +1,275 @@
 mohair = require 'mohair'
 Promise = require 'bluebird'
-_ = require 'underscore'
+
+# escape that handles table schemas correctly:
+# schemaAwareEscape('someschema.users') -> '"someschema"."users"
+schemaAwareEscape = (string) ->
+  string.split(".").map((str) -> "\"#{str}\"").join '.'
+
+defaultMohair = mohair
+  .escape(schemaAwareEscape)
+  # return everything by default
+  .returning('*')
+
+# async: hooks can return promises !
+runPipeline = (context, pipeline, record) ->
+  reducer = (soFar, step) ->
+    soFar.then step.bind(context)
+  pipeline.reduce reducer, Promise.resolve record
+
+afterQuery = (context, returnFirst, pipeline, queryResults) ->
+  if queryResults.rows?
+    processRow = (row) ->
+      runPipeline context, pipeline, row
+    Promise.all(queryResults.rows.map processRow).then (processedRows) ->
+      if returnFirst
+        processedRows[0]
+      else
+        processedRows
+  else
+    results
 
 module.exports =
 
 ###################################################################################
-# fluent
+# core
 
-    clone: ->
-        Object.create this
+  clone: ->
+    Object.create @
 
-    # prototypically inherit from this
-    # and set key to value
+  # the magic behind mohair's fluent interface:
+  # prototypically inherit from `this` and set `key` to `value`
 
-    fluent: (key, value) ->
-        object = this.clone()
-        object[key] = value
-        object
-
-    # call: (f, args...) ->
-    #     f.apply this, args
+  fluent: (key, value) ->
+    object = @clone()
+    object[key] = value
+    return object
 
 ###################################################################################
-# setters
+# setters and defaults
 
-    $mohair: mohair.escape((string) -> "\"#{string}\"")
-    $returning: '*'
-    $primaryKey: 'id'
-    $allowedColumns: []
-    $returnFirst: false
+  _allowedColumns: []
+  allowedColumns: (columns) ->
+    @fluent '_allowedColumns', @_allowedColumns.concat(columns)
 
-    returning: (arg) ->
-        this.fluent '$returning', arg
-    connection: (arg) ->
-        this.fluent '$connection', arg
-    allowedColumns: (columns) ->
-        this.fluent '$allowedColumns', this.$allowedColumns.concat(columns)
-    primaryKey: (arg) ->
-        this.fluent '$primaryKey', arg
-    table: (arg) ->
-        this.fluent('$table', arg)
-            .fluent '$mohair', this.$mohair.table arg
-    returnFirst: (arg = true) ->
-        this.fluent '$returnFirst', arg
-    debug: (arg) ->
-        this.fluent '$debug', arg
+  # TODO no use for that yet
+  # _primaryKey: 'id'
+  # primaryKey: (arg) ->
+  #   @fluent '_primaryKey', arg
+
+  _returnFirst: false
+  returnFirst: (arg = true) ->
+    @fluent '_returnFirst', arg
+
+  table: (arg) ->
+    @fluent('_table', arg)
+      .fluent '_mohair', @_mohair.table arg
+
+  debug: (arg) ->
+    @fluent '_debug', arg
 
 ###################################################################################
 # pipelining
 
-    $beforeInsert: []
-    $afterInsert: []
-    $beforeUpdate: []
-    $afterUpdate: []
-    $afterSelect: []
-    $afterDelete: []
+  _beforeInsert: []
+  beforeInsert: (args...) ->
+    @fluent '_beforeInsert', @_beforeInsert.concat(args)
 
-    beforeInsert: (args...) ->
-        this.fluent '$beforeInsert', this.$beforeInsert.concat(args)
-    afterInsert: (args...) ->
-        this.fluent '$afterInsert', this.$afterInsert.concat(args)
-    beforeUpdate: (args...) ->
-        this.fluent '$beforeUpdate', this.$beforeUpdate.concat(args)
-    afterUpdate: (args...) ->
-        this.fluent '$afterUpdate', this.$afterUpdate.concat(args)
-    # run on the records returned by a delete
-    afterDelete: (args...) ->
-        this.fluent '$afterUpdate', this.$afterUpdate.concat(args)
-    afterSelect: (args...) ->
-        this.fluent '$afterSelect', this.$afterSelect.concat(args)
+  _afterInsert: []
+  afterInsert: (args...) ->
+    @fluent '_afterInsert', @_afterInsert.concat(args)
 
-    runPipeline: (pipeline, data) ->
-        reducer = (soFar, f) ->
-            soFar.then f
-        pipeline.reduce reducer, Promise.resolve data
+  _beforeUpdate: []
+  beforeUpdate: (args...) ->
+    @fluent '_beforeUpdate', @_beforeUpdate.concat(args)
+
+  # run on the records returned by an update
+  _afterUpdate: []
+  afterUpdate: (args...) ->
+    @fluent '_afterUpdate', @_afterUpdate.concat(args)
+
+  # run on the records returned by a delete
+  _afterDelete: []
+  afterDelete: (args...) ->
+    @fluent '_afterUpdate', @_afterUpdate.concat(args)
+
+  _afterSelect: []
+  afterSelect: (args...) ->
+    @fluent '_afterSelect', @_afterSelect.concat(args)
 
 ###################################################################################
-# pass through to mohair
+# the underlying mohair query builder instance
 
-    sql: ->
-        this.$mohair.sql()
-    params: ->
-        this.$mohair.params()
+  _mohair: defaultMohair
 
-    raw: (args...) ->
-        this.$mohair.raw args...
+  # implementation of sql-fragment interface
 
-    where: (args...) ->
-        this.fluent '$mohair', this.$mohair.where args...
-    join: (args...) ->
-        this.fluent '$mohair', this.$mohair.join args...
+  sql: (escape) ->
+    @_mohair.sql(escape)
+  params: ->
+    @_mohair.params()
 
-    select: (args...) ->
-        this.fluent '$mohair', this.$mohair.select args...
-    limit: (arg) ->
-        this.fluent '$mohair', this.$mohair.limit arg
-    offset: (arg) ->
-        this.fluent '$mohair', this.$mohair.offset arg
-    order: (arg) ->
-        this.fluent '$mohair', this.$mohair.order arg
-    group: (arg) ->
-        this.fluent '$mohair', this.$mohair.group arg
-    with: (arg) ->
-        this.fluent '$mohair', this.$mohair.with arg
+  # pass through to mohair:
+
+  raw: (args...) ->
+    @_mohair.raw args...
+
+  where: (args...) ->
+    @fluent '_mohair', @_mohair.where args...
+  having: (args...) ->
+    @fluent '_mohair', @_mohair.having args...
+  join: (args...) ->
+    @fluent '_mohair', @_mohair.join args...
+  select: (args...) ->
+    @fluent '_mohair', @_mohair.select args...
+  limit: (arg) ->
+    @fluent '_mohair', @_mohair.limit arg
+  offset: (arg) ->
+    @fluent '_mohair', @_mohair.offset arg
+  order: (arg) ->
+    @fluent '_mohair', @_mohair.order arg
+  group: (arg) ->
+    @fluent '_mohair', @_mohair.group arg
+  with: (arg) ->
+    @fluent '_mohair', @_mohair.with arg
+  returning: (args...) ->
+    @fluent '_mohair', @_mohair.returning args...
 
 ###################################################################################
 # connection
 
-    getConnection: (cb) ->
-        self = this
+  connection: (arg) ->
+    @fluent '_connection', arg
 
-        unless self.$connection?
-            throw new Error "the method you are calling requires a call to connection() before it"
-        if 'function' is typeof self.$connection
-            self.$connection cb
+  getConnection: (cb) ->
+    connection = @_connection
+
+    unless connection?
+      # TODO StateError
+      throw new Error "the method you are calling requires a call to connection() before it"
+    if 'function' is typeof connection
+      connection cb
+      return
+    setTimeout ->
+      cb null, connection
+
+  query: (sql, params) ->
+    getConnection = @getConnection.bind(@)
+
+    @_debug?(
+      method: 'query'
+      sql: sql
+      params: params
+    )
+
+    new Promise (resolve, reject) ->
+      # thankfully the only piece of ugly callback code in all of mesa ;-)
+      getConnection (err, connection, done) ->
+        if err?
+          done?()
+          reject err
+          return
+        connection.query sql, params, (err, results) ->
+          done?()
+          if err?
+            reject err
             return
-        setTimeout ->
-            cb null, self.$connection
-
-    query: (sql, params) ->
-        self = this
-
-        self.$debug('MESA', 'QUERY', sql, params)?
-
-        new Promise (resolve, reject) ->
-          self.getConnection (err, connection, done) ->
-              if err?
-                  done?()
-                  reject err
-                  return
-              connection.query sql, params, (err, results) ->
-                  done?()
-                  if err?
-                      reject err
-                      return
-                  resolve results
+          resolve results
 
 ###################################################################################
-# command
+# command: these functions have side effects
 
-    insert: (dataOrArray) ->
-        self = this
+  insert: (recordOrRecords) ->
+    that = this
 
-        array = if Array.isArray dataOrArray then dataOrArray else [dataOrArray]
-        self.returnFirst().insertMany array
+    isArray = Array.isArray recordOrRecords
 
-    insertMany: (array) ->
-        self = this
+    if isArray
+      @_debug?(
+        method: 'insert'
+        records: recordOrRecords
+      )
+    else
+      @_debug?(
+        method: 'insert'
+        record: recordOrRecords
+      )
 
-        beforeInsert = (data) ->
-            self.runPipeline self.$beforeInsert, data
+    returnFirst = not isArray
+    records = if isArray then recordOrRecords else [recordOrRecords]
 
-        Promise.all(array.map beforeInsert).then (processedArray) ->
-            cleanArray = processedArray.map (data) ->
-                self.pickAllowedColumns data
+    beforeInsert = (record) ->
+      runPipeline that, that._beforeInsert, record
 
-            cleanArray.forEach (cleanData) ->
-                if Object.keys(cleanData).length is 0
-                    return Promise.reject new Error 'nothing to insert'
+    Promise.all(records.map beforeInsert).then (processedArray) ->
+      cleanArray = processedArray.map (record) ->
+        that.pickAllowedColumns record
 
-            query = self.$mohair.insertMany cleanArray
-            sql = self.appendReturning self.replacePlaceholders query.sql()
+      query = that._mohair.insert cleanArray
+      sql = that.replacePlaceholders query.sql()
 
-            self.query(sql, query.params()).then (results) ->
-                self.afterQuery self.$afterInsert, results
+      that.query(sql, query.params()).then (results) ->
+        afterQuery that, returnFirst, that._afterInsert, results
 
-    update: (data) ->
-        self = this
+  update: (update) ->
+    that = this
 
-        self.runPipeline(self.$beforeUpdate, data).then (processedData) ->
-            cleanData = self.pickAllowedColumns processedData
+    runPipeline(that, that._beforeUpdate, update).then (processedData) ->
+      cleanData = that.pickAllowedColumns processedData
 
-            if Object.keys(cleanData).length is 0
-                return Promise.reject new Error 'nothing to update'
+      query = that._mohair.update cleanData
+      sql = that.replacePlaceholders query.sql()
 
-            query = self.$mohair.update cleanData
-            sql = self.appendReturning self.replacePlaceholders query.sql()
+      that.query(sql, query.params()).then (results) ->
+        afterQuery that, that._returnFirst, that._afterUpdate, results
 
-            self.query(sql, query.params()).then (results) ->
-                self.afterQuery self.$afterUpdate, results
+  delete: ->
+    that = this
 
-    delete: ->
-        self = this
+    query = that._mohair.delete()
+    sql = that.replacePlaceholders query.sql()
 
-        query = self.$mohair.delete()
-        sql = self.appendReturning self.replacePlaceholders query.sql()
-
-        self.query(sql, query.params()).then (results) ->
-            self.afterQuery self.$afterDelete, results
+    that.query(sql, query.params()).then (results) ->
+      afterQuery that, that._returnFirst, that._afterDelete, results
 
 ###################################################################################
 # query
 
-    find: ->
-        self = this
+  find: ->
+    that = this
 
-        sql = self.replacePlaceholders self.sql()
+    sql = that.replacePlaceholders that.sql()
 
-        self.query(sql, self.params()).then (results) ->
-            self.afterQuery self.$afterSelect, results
+    that.query(sql, that.params()).then (results) ->
+      afterQuery that, that._returnFirst, that._afterSelect, results
 
-    exists: ->
-        self = this
+  first: ->
+    @limit(1)
+      .returnFirst()
+      .find()
 
-        sql = self.replacePlaceholders self.sql()
+  exists: ->
+    query = @_mohair.limit(1)
 
-        self.query(sql, self.params()).then (results) ->
-            results.rows? and results.rows.length isnt 0
+    sql = @replacePlaceholders query.sql()
 
-###################################################################################
-# easy sugar
-
-    first: ->
-        this.limit(1)
-            .returnFirst()
-            .find()
+    that.query(sql, query.params()).then (results) ->
+      results.rows? and results.rows.length isnt 0
 
 ###################################################################################
-# util
+# helper functions
 
-    replacePlaceholders: (sql) ->
-        # replace ?, ?, ... with $1, $2, ...
-        index = 1
-        sql.replace /\?/g, -> '$' + index++
+  # call a one-off function as if it were part of mesa
+  call: (f, args...) ->
+    f.apply @, args
 
-    pickAllowedColumns: (data) ->
-        self = this
+  replacePlaceholders: (sql) ->
+    # replace ?, ?, ... with $1, $2, ...
+    index = 1
+    sql.replace /\?/g, -> '$' + index++
 
-        _.pick data, self.$allowedColumns
-
-    afterQuery: (pipeline, results) ->
-        self = this
-
-        if results.rows?
-            processRow = (row) ->
-                self.runPipeline pipeline, row
-            Promise.all(results.rows.map processRow).then (processedRows) ->
-                if self.$returnFirst
-                    processedRows[0]
-                else
-                    processedRows
-        else
-            results
-
-    appendReturning: (sql) ->
-        self = this
-
-        if self.$returning?
-            sql + ' RETURNING ' + self.$returning
-        else
-            sql
+  pickAllowedColumns: (record) ->
+    picked = {}
+    @_allowedColumns.forEach (column) ->
+      picked[column] = record[column]
+    return picked
