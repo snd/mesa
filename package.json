@@ -12,43 +12,44 @@
     "data",
     "data layer",
     "simple"
-    ],
-    "homepage": "http://github.com/snd/mesa",
-    "author": {
-      "name": "Maximilian Krüger",
-      "email": "kruemaxi@gmail.com",
-      "url": "http://github.com/snd"
-    },
-    "bugs": {
-      "url": "http://github.com/snd/mesa/issues",
-      "email": "kruemaxi@gmail.com"
-    },
-    "repository": {
-      "type": "git",
-      "url": "git://github.com/snd/mesa.git"
-    },
-    "licenses": {
-      "type": "MIT",
-      "url": "git://github.com/snd/mesa/LICENSE"
-    },
-    "engines": {
-      "node": ">=0.8.0"
-    },
-    "dependencies": {
-      "mohair": "0.12.0",
-      "bluebird": "2.3.11"
-    },
-    "devDependencies": {
-      "coffee-script": "1.8.0",
-      "nodeunit": "0.9.0",
-      "pg": "4.1.0"
-    },
-    "scripts": {
-      "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-      "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-      "pretest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-      "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee",
-      "clean": "rm src/*.js"
-    },
-    "main": "src/mesa"
+  ],
+  "homepage": "http://github.com/snd/mesa",
+  "author": {
+    "name": "Maximilian Krüger",
+    "email": "kruemaxi@gmail.com",
+    "url": "http://github.com/snd"
+  },
+  "bugs": {
+    "url": "http://github.com/snd/mesa/issues",
+    "email": "kruemaxi@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/snd/mesa.git"
+  },
+  "licenses": {
+    "type": "MIT",
+    "url": "git://github.com/snd/mesa/LICENSE"
+  },
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "dependencies": {
+    "mohair": "0.12.0",
+    "bluebird": "2.3.11"
+  },
+  "devDependencies": {
+    "coffee-script": "1.8.0",
+    "nodeunit": "0.9.0",
+    "pg": "4.1.0"
+  },
+  "scripts": {
+    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
+    "clean": "rm -f src/*.js",
+    "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
+    "pretest": "rm -f src/*.js",
+    "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee",
+    "posttest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee"
+  },
+  "main": "src/mesa"
 }
