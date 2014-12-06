@@ -2,24 +2,19 @@ Promise = require 'bluebird'
 
 child_process = Promise.promisifyAll require 'child_process'
 
+fs = Promise.promisifyAll require 'fs'
+path = require 'path'
+
 pg = require 'pg'
 
 ###################################################################################
 # constants
 
 DATABASE_NAME = 'mesa_integration_test'
-
 DATABASE_URL = "postgres://localhost/#{DATABASE_NAME}"
 
-dropCommand = "psql -c 'DROP DATABASE IF EXISTS #{DATABASE_NAME};'"
-createCommand = "psql -c 'CREATE DATABASE #{DATABASE_NAME};'"
-
-userTableSql = """
-CREATE TABLE "user"(
-  id SERIAL PRIMARY KEY,
-  name text
-);
-"""
+dropDatabaseCommand = "psql -c 'DROP DATABASE IF EXISTS #{DATABASE_NAME};'"
+createDatabaseCommand = "psql -c 'CREATE DATABASE #{DATABASE_NAME};'"
 
 ###################################################################################
 # nice promise based wrapper around node-postgres
@@ -67,32 +62,40 @@ module.exports =
 ###################################################################################
 # setup & teardown
 
-  'setUp': (callback) ->
+  'setUp': (done) ->
     console.log 'setUp', 'BEGIN'
     console.log 'setUp', 'drop database'
-    child_process.execAsync(dropCommand)
+    resetDatabase = child_process.execAsync(dropDatabaseCommand)
       .then (stdout) ->
         # console.log stdout
         console.log 'setUp', 'create database'
-        child_process.execAsync(createCommand)
+        child_process.execAsync(createDatabaseCommand)
       .then (stdout) ->
         # console.log stdout
-        console.log 'setUp', 'create user table'
-        pgSingleQuery userTableSql
+        stdout
+
+    readSchema = fs.readFileAsync(
+      path.resolve(__dirname, 'schema.sql')
+      {encoding: 'utf8'}
+    )
+    Promise.all([readSchema, resetDatabase])
+      .spread (schema) ->
+        console.log 'setUp', 'migrate schema'
+        pgSingleQuery schema
       .then ->
         console.log 'setUp', 'END'
-        callback()
+        done()
 
-  'tearDown': (callback) ->
+  'tearDown': (done) ->
     console.log 'tearDown', 'BEGIN'
     console.log 'tearDown', 'destroy pool'
     pgDestroyPool()
       .then ->
         console.log 'tearDown', 'drop database'
-        child_process.execAsync(dropCommand)
+        child_process.execAsync(dropDatabaseCommand)
       .then (stdout) ->
         console.log 'tearDown', 'END'
-        callback()
+        done()
 
 ###################################################################################
 # integration tests
