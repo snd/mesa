@@ -271,5 +271,6 @@ module.exports =
   pickAllowedColumns: (record) ->
     picked = {}
     @_allowedColumns.forEach (column) ->
-      picked[column] = record[column]
+      if (column of record)
+        picked[column] = record[column]
     return picked
