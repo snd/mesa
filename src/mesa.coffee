@@ -235,7 +235,10 @@ module.exports =
 ###################################################################################
 # query
 
-  find: ->
+  find: (arg) ->
+    if arg?
+      throw new Error "you called `.find()` with an argument but `.find()` ignores all arguments. find returns a promise! maybe you wanted to call the promise instead: `find().then(function(result) { ... })`"
+
     that = this
 
     sql = that.replacePlaceholders that.sql()
