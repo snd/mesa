@@ -55,7 +55,9 @@ pgDestroyPool = ->
 ###################################################################################
 # mesa
 
-mesa = require('../src/mesa').connection(pgCallbackConnection)
+mesa = require('../src/mesa')
+  .connection(pgCallbackConnection)
+  # .debug(console.log)
 
 module.exports =
 
@@ -78,8 +80,7 @@ module.exports =
       path.resolve(__dirname, 'schema.sql')
       {encoding: 'utf8'}
     )
-    Promise.all([readSchema, resetDatabase])
-      .spread (schema) ->
+    Promise.join readSchema, resetDatabase, (schema) ->
         console.log 'setUp', 'migrate schema'
         pgSingleQuery schema
       .then ->
@@ -107,27 +108,26 @@ module.exports =
     userTable = mesa
       .table('user')
       .allowedColumns(['name'])
-      # .debug(console.log)
 
-    userTable.insert(name: 'alice').bind({})
+    userTable.insert(name: 'josie').bind({})
       .then (row) ->
         @insertedRow = row
-        test.equal @insertedRow.name, 'alice'
-        userTable.find()
+        test.equal @insertedRow.name, 'josie'
+        userTable.where(name: 'josie').find()
       .then (rows) ->
         test.equal @insertedRow.id, rows[0].id
         userTable
           .where(id: @insertedRow.id)
           .returnFirst()
-          .update(name: 'bob')
+          .update(name: 'josie packer')
       .then (updatedRow) ->
         test.equal @insertedRow.id, updatedRow.id
-        test.equal 'bob', updatedRow.name
+        test.equal 'josie packer', updatedRow.name
         userTable
-          .where(name: 'bob')
+          .where(name: 'josie packer')
           .first()
-      .then (bob) ->
-        test.equal 'bob', bob.name
+      .then (row) ->
+        test.equal 'josie packer', row.name
         userTable
           .where(id: @insertedRow.id)
           .returnFirst()
@@ -136,5 +136,51 @@ module.exports =
         test.equal @insertedRow.id, deletedRow.id
         userTable.find()
       .then (rows) ->
-        test.equal rows.length, 0
+        test.equal rows.length, 6
+        test.done()
+
+  'json and lateral joins': (test) ->
+    # inspired by:
+    # http://blog.heapanalytics.com/postgresqls-powerful-new-join-type-lateral/
+
+    userTable = mesa
+      .table('user')
+
+    eventTable = mesa
+      .table('event')
+      .allowedColumns(['id', 'user_id', 'created_at', 'data'])
+
+    userTable.where(name: 'laura').first()
+      .then (laura) ->
+        # insert a couple of events
+        eventTable.insert([
+          {
+            user_id: laura.id
+            created_at: mesa.raw('now()')
+            data: JSON.stringify(type: 'view_homepage')
+          }
+      ])
+      .then (events) ->
+        console.log events
+
+        innerQuery = eventTable
+          .select(
+            'user_id',
+            {view_homepage: 1}
+            {view_homepage_time: 'min(created_at)'}
+          )
+          .where("data->>'type' = ?", 'view_homepage')
+          .group('user_id')
+          .join('LEFT JOIN LATERAL')
+
+        outerQuery = mesa
+          .select([
+            'user_id'
+            'view_homepage'
+            'view_homepage_time'
+            'enter_credit_card'
+            'enter_credit_card_time'
+          ])
+          .table(innerQuery)
+
         test.done()
