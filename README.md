@@ -333,14 +333,28 @@ your application will run out of connections and hang.
 
 ## TODO
 
-- integration tests
-  - just real integration tests
+- second integration test
+
 - better debugging
+  - log query completion
+- throw when first, find, delete, exists get called with arguments
+  - test that
 - unit test that escape works with schemas
+- `.omit()` as a afterInsert
+  - would be nice if it could use the pipelining
 - function to wrap every result in a class
-  - could use the pipelining
-- improve keywords in package.json
+  - would be nice if it could use the pipelining
+- EMBEDS !!!
 - find a better solution for allowedColumns
 - test those really hardcore scenarios with mesas integration tests
-- embeds
-- log query completion
+  - which ones?
+- "postgres only"
+- improve keywords in package.json
+
+
+- hooks for collections
+  - do embeds via collection hooks
+- skip chained methods with null arguments ?
+  - problem: less bad code blows up
+
+- snakecase to camelcase conversion in hooks
