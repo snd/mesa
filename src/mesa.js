@@ -262,8 +262,11 @@ module.exports = {
       return afterQuery(that, that._returnFirst, that._afterDelete, results);
     });
   },
-  find: function() {
+  find: function(arg) {
     var sql, that;
+    if (arg != null) {
+      throw new Error("you called `.find()` with an argument but `.find()` ignores all arguments. find returns a promise! maybe you wanted to call the promise instead: `find().then(function(result) { ... })`");
+    }
     that = this;
     sql = that.replacePlaceholders(that.sql());
     return that.query(sql, that.params()).then(function(results) {
@@ -297,7 +300,9 @@ module.exports = {
     var picked;
     picked = {};
     this._allowedColumns.forEach(function(column) {
-      return picked[column] = record[column];
+      if (column in record) {
+        return picked[column] = record[column];
+      }
     });
     return picked;
   }
