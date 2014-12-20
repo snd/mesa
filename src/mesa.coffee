@@ -174,9 +174,14 @@ module.exports =
 # connection
 
   connection: (arg) ->
+    typeofArg = typeof arg
+    unless ('function' is typeof arg) or (('object' is typeof arg) and arg.query?)
+      throw new Error '.connection() must be called with either a connection object or a function that takes a callback and calls it with a connection'
     @fluent '_connection', arg
 
-  getConnection: (cb) ->
+  getConnection: (arg) ->
+    if arg?
+      throw new Error "you called .getConnection() with an argument but .getConnection() ignores all arguments. .getConnection() returns a promise! maybe you wanted to call the promise instead: .getConnection().then(function(result) { ... })"
     connection = @_connection
     debug = @_debug
 
