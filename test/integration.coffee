@@ -17,47 +17,15 @@ dropDatabaseCommand = "psql -c 'DROP DATABASE IF EXISTS #{DATABASE_NAME};'"
 createDatabaseCommand = "psql -c 'CREATE DATABASE #{DATABASE_NAME};'"
 
 ###################################################################################
-# nice promise based wrapper around node-postgres
-
-pgCallbackConnection = (cb) ->
-  pg.connect DATABASE_URL, cb
-
-pgPromiseConnection = ->
-  new Promise (resolve, reject) ->
-    pgCallbackConnection (err, connection, done) ->
-      if err?
-        return reject err
-      resolve
-        connection: connection
-        done: done
-
-pgQuery = (connection, sql, params) ->
-  query = Promise.promisify(connection.query, connection)
-  query sql, params
-
-pgWrapInConnection = (block) ->
-  pgPromiseConnection().then ({connection, done}) ->
-    block(connection).finally ->
-      done()
-
-pgSingleQuery = (sql, params) ->
-  pgWrapInConnection (connection) ->
-    pgQuery connection, sql, params
-
-pgDestroyPool = ->
-  pool = pg.pools.all[JSON.stringify(DATABASE_URL)]
-  console.log 'pgDestroyPool', 'pool?', pool?
-  if pool?
-    Promise.promisify(pool.destroyAllNow, pool)()
-  else
-    Promise.resolve()
-
-###################################################################################
 # mesa
 
 mesa = require('../src/mesa')
-  .connection(pgCallbackConnection)
-  # .debug(console.log)
+  .connection(
+    (cb) -> pg.connect DATABASE_URL, cb
+  )
+  .debug (event) ->
+    delete event.connection
+    console.log event
 
 module.exports =
 
@@ -82,7 +50,7 @@ module.exports =
     )
     Promise.join readSchema, resetDatabase, (schema) ->
         console.log 'setUp', 'migrate schema'
-        pgSingleQuery schema
+        mesa.query schema
       .then ->
         console.log 'setUp', 'END'
         done()
@@ -90,7 +58,7 @@ module.exports =
   'tearDown': (done) ->
     console.log 'tearDown', 'BEGIN'
     console.log 'tearDown', 'destroy pool'
-    pgDestroyPool()
+    mesa.helpers.pgDestroyPool(pg, DATABASE_URL)
       .then ->
         console.log 'tearDown', 'drop database'
         child_process.execAsync(dropDatabaseCommand)
@@ -100,6 +68,62 @@ module.exports =
 
 ###################################################################################
 # integration tests
+
+  'just setUp and tearDown': (test) ->
+    test.done()
+
+  'getConnection': (test) ->
+    mesa.getConnection().then ({connection, done}) ->
+      test.ok connection?
+      done()
+      test.done()
+
+  'query': (test) ->
+    mesa.query('SELECT * FROM "user"').then (results) ->
+      test.equal results.rows.length, 6
+      test.done()
+
+  'wrapInTransaction - commit': (test) ->
+    test.expect 2
+    mesa.wrapInTransaction(
+      (transaction) ->
+        withTransaction = mesa.connection transaction
+        withTransaction
+          .query('INSERT INTO "user"(name) VALUES ($1)', ['josie'])
+          .then ->
+            withTransaction.query('SELECT * FROM "user"')
+          .then (results) ->
+            test.equal results.rows.length, 7
+    ).then ->
+      mesa.query('SELECT * FROM "user"').then (results) ->
+        test.equal results.rows.length, 7
+        test.done()
+
+  'wrapInTransaction - rollback': (test) ->
+    test.expect 2
+    mesa.wrapInTransaction(
+      (transaction) ->
+        withTransaction = mesa.connection transaction
+        withTransaction
+          .query('INSERT INTO "user"(name) VALUES ($1)', ['josie'])
+          .then ->
+            withTransaction.query('SELECT * FROM "user"')
+          .then (results) ->
+            test.equal results.rows.length, 7
+            throw new Error 'rollback please'
+    ).catch ->
+      mesa.query('SELECT * FROM "user"').then (results) ->
+        test.equal results.rows.length, 6
+        test.done()
+
+  'single mesa.find': (test) ->
+    test.expect 1
+    mesa
+      .table('user')
+      .find()
+      .then (rows) ->
+        test.equal rows.length, 6
+        test.done()
 
   'insert, read, update and delete a single user': (test) ->
 
@@ -137,50 +161,82 @@ module.exports =
         userTable.find()
       .then (rows) ->
         test.equal rows.length, 6
-        test.done()
-
-  'json and lateral joins': (test) ->
-    # inspired by:
-    # http://blog.heapanalytics.com/postgresqls-powerful-new-join-type-lateral/
-
-    userTable = mesa
-      .table('user')
-
-    eventTable = mesa
-      .table('event')
-      .allowedColumns(['id', 'user_id', 'created_at', 'data'])
-
-    userTable.where(name: 'laura').first()
-      .then (laura) ->
-        # insert a couple of events
-        eventTable.insert([
-          {
-            user_id: laura.id
-            created_at: mesa.raw('now()')
-            data: JSON.stringify(type: 'view_homepage')
-          }
-      ])
-      .then (events) ->
-        console.log events
-
-        innerQuery = eventTable
-          .select(
-            'user_id',
-            {view_homepage: 1}
-            {view_homepage_time: 'min(created_at)'}
-          )
-          .where("data->>'type' = ?", 'view_homepage')
-          .group('user_id')
-          .join('LEFT JOIN LATERAL')
-
-        outerQuery = mesa
-          .select([
-            'user_id'
-            'view_homepage'
-            'view_homepage_time'
-            'enter_credit_card'
-            'enter_credit_card_time'
-          ])
-          .table(innerQuery)
 
         test.done()
+
+#   'json and lateral joins': (test) ->
+#     # inspired by:
+#     # http://blog.heapanalytics.com/postgresqls-powerful-new-join-type-lateral/
+#
+#     userTable = mesa
+#       .table('user')
+#
+#     eventTable = mesa
+#       .table('event')
+#       .allowedColumns(['id', 'user_id', 'created_at', 'data'])
+#
+#     userTable.where(name: 'laura').first()
+#       .then (laura) ->
+#         # insert a couple of events
+#         eventTable.insert([
+#           {
+#             user_id: laura.id
+#             created_at: mesa.raw('now()')
+#             data: JSON.stringify(type: 'view_homepage')
+#           }
+#       ])
+#       .then (events) ->
+#         console.log events
+#
+#         innerQuery = eventTable
+#           .select(
+#             'user_id',
+#             {view_homepage: 1}
+#             {view_homepage_time: 'min(created_at)'}
+#           )
+#           .where("data->>'type' = ?", 'view_homepage')
+#           .group('user_id')
+#           .join('LEFT JOIN LATERAL')
+#
+#         outerQuery = mesa
+#           .select([
+#             'user_id'
+#             'view_homepage'
+#             'view_homepage_time'
+#             'enter_credit_card'
+#             'enter_credit_card_time'
+#           ])
+#           .table(innerQuery)
+#
+#         test.done()
+
+  'subqueries (advisory locks)': (test) ->
+    test.expect 7
+
+    bitcoinReceiveAddress = mesa.table('bitcoin_receive_address')
+
+    # locking the id and releasing it again
+    # "xact" means that the lock is released at the end of the transaction
+    selectUniqueAddressWithLock = bitcoinReceiveAddress
+      .select('id')
+      .where('pg_try_advisory_xact_lock(id) for update')
+      .limit(1)
+
+    addressPromises = [1..7].map ->
+      mesa.wrapInTransaction (transaction) ->
+        bitcoinReceiveAddress
+          .connection(transaction)
+          .where(id: selectUniqueAddressWithLock)
+          .returnFirst()
+          .delete()
+
+    Promise.all(addressPromises).then (addresses) ->
+      test.equal 34, addresses[0].address.length
+      test.equal 34, addresses[1].address.length
+      test.equal 34, addresses[2].address.length
+      test.equal 34, addresses[3].address.length
+      test.equal 34, addresses[4].address.length
+      test.ok not addresses[5]?
+      test.ok not addresses[6]?
+
+      test.done()
