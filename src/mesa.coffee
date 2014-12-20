@@ -1,26 +1,31 @@
 mohair = require 'mohair'
 Promise = require 'bluebird'
 
+###################################################################################
+# helpers
+
+helpers = {}
+
 # escape that handles table schemas correctly:
 # schemaAwareEscape('someschema.users') -> '"someschema"."users"
-schemaAwareEscape = (string) ->
+helpers.schemaAwareEscape = (string) ->
   string.split(".").map((str) -> "\"#{str}\"").join '.'
 
-defaultMohair = mohair
-  .escape(schemaAwareEscape)
+helpers.defaultMohair = mohair
+  .escape(helpers.schemaAwareEscape)
   # return everything by default
   .returning('*')
 
 # async: hooks can return promises !
-runPipeline = (context, pipeline, record) ->
+helpers.runPipeline = (context, pipeline, record) ->
   reducer = (soFar, step) ->
     soFar.then step.bind(context)
   pipeline.reduce reducer, Promise.resolve record
 
-afterQuery = (context, returnFirst, pipeline, queryResults) ->
+helpers.afterQuery = (context, returnFirst, pipeline, queryResults) ->
   if queryResults.rows?
     processRow = (row) ->
-      runPipeline context, pipeline, row
+      helpers.runPipeline context, pipeline, row
     Promise.all(queryResults.rows.map processRow).then (processedRows) ->
       if returnFirst
         processedRows[0]
@@ -29,10 +34,40 @@ afterQuery = (context, returnFirst, pipeline, queryResults) ->
   else
     results
 
-module.exports =
+# TODO better name
+helpers.replacePlaceholders = (sql) ->
+  # replace ?, ?, ... with $1, $2, ...
+  index = 1
+  sql.replace /\?/g, -> '$' + index++
+
+helpers.pick = (record, keys) ->
+  picked = {}
+  keys.forEach (column) ->
+    if (column of record)
+      picked[column] = record[column]
+  return picked
+
+helpers.pgDestroyPool = (pg, config) ->
+  poolKey = JSON.stringify(config)
+  console.log 'pgDestroyPool'
+  console.log 'Object.keys(pg.pools.all)', Object.keys(pg.pools.all)
+  console.log 'poolKey', poolKey
+  pool = pg.pools.all[poolKey]
+  console.log 'pool?', pool?
+  if pool?
+    new Promise (resolve, reject) ->
+      pool.drain ->
+        # https://github.com/coopernurse/node-pool#step-3---drain-pool-during-shutdown-optional
+        pool.destroyAllNow ->
+          delete pg.pools.all[poolKey]
+          resolve()
+  else
+    Promise.resolve()
 
 ###################################################################################
 # core
+
+module.exports =
 
   clone: ->
     Object.create @
@@ -100,7 +135,7 @@ module.exports =
 ###################################################################################
 # the underlying mohair query builder instance
 
-  _mohair: defaultMohair
+  _mohair: helpers.defaultMohair
 
   # implementation of sql-fragment interface
 
@@ -147,52 +182,80 @@ module.exports =
 
     unless connection?
       throw new Error "the method you are calling requires a call to connection() before it"
-    if 'function' is typeof connection
-      return connection (err, result, done) ->
-        if err?
-          return cb err
-        debug?(
-          method: 'getConnection'
-          connection: result
-          isNewConnection: true
-        )
-        cb err, result, done
-    setTimeout ->
+
+    new Promise (resolve, reject) ->
+      if 'function' is typeof connection
+        return connection (err, result, realDone) ->
+          done = ->
+            debug?(
+              event: 'connection .done() called'
+              connection: connection
+            )
+            realDone()
+          if err?
+            done?()
+            return reject err
+          debug?(
+            method: 'getConnection'
+            connection: result
+            isNewConnection: true
+          )
+          resolve
+            connection: result
+            done: done
+
       debug?(
         method: 'getConnection'
         connection: connection
         isNewConnection: false
       )
-      cb null, connection
+      resolve
+        connection: connection
+
+###################################################################################
+# nice promise based wrapper around node-postgres
+
+  wrapInConnection: (block) ->
+    @getConnection().then ({connection, done}) ->
+      block(connection).finally ->
+        done?()
 
   query: (sql, params) ->
-    getConnection = @getConnection.bind(@)
-
-    debug = @_debug
-
-    debug?(
+    @debug?(
       method: 'query'
       sql: sql
       params: params
     )
-
-    new Promise (resolve, reject) ->
-      # thankfully the only piece of ugly callback code in all of mesa ;-)
-      getConnection (err, connection, done) ->
-        if err?
-          done?()
-          reject err
-          return
+    @wrapInConnection (connection) ->
+      new Promise (resolve, reject) ->
         connection.query sql, params, (err, results) ->
-          debug?(
-            method: 'connection done'
-            connection: connection
-          )
-          done?()
           if err?
-            reject err
-            return
+            return reject err
           resolve results
+
+  wrapInTransaction: (block) ->
+    that = this
+    @wrapInConnection (connection) ->
+      thatWithConnection = that.connection(connection)
+      that.debug?(
+        event: 'transaction start'
+      )
+      thatWithConnection.query('BEGIN;')
+        .then ->
+          block connection
+        .then (result) ->
+          that.debug?(
+            event: 'transaction commit'
+          )
+          thatWithConnection.query('COMMIT;').then ->
+            result
+        .catch (error) ->
+          that.debug?(
+            event: 'transaction rollback'
+            error: error
+          )
+          thatWithConnection.query('ROLLBACK;').then ->
+            Promise.reject error
 
 ###################################################################################
 # command: these functions have side effects
@@ -217,38 +280,38 @@ module.exports =
     records = if isArray then recordOrRecords else [recordOrRecords]
 
     beforeInsert = (record) ->
-      runPipeline that, that._beforeInsert, record
+      helpers.runPipeline that, that._beforeInsert, record
 
     Promise.all(records.map beforeInsert).then (processedArray) ->
       cleanArray = processedArray.map (record) ->
-        that.pickAllowedColumns record
+        helpers.pick record, that._allowedColumns
 
       query = that._mohair.insert cleanArray
-      sql = that.replacePlaceholders query.sql()
+      sql = helpers.replacePlaceholders query.sql()
 
       that.query(sql, query.params()).then (results) ->
-        afterQuery that, returnFirst, that._afterInsert, results
+        helpers.afterQuery that, returnFirst, that._afterInsert, results
 
   update: (update) ->
     that = this
 
-    runPipeline(that, that._beforeUpdate, update).then (processedData) ->
-      cleanData = that.pickAllowedColumns processedData
+    helpers.runPipeline(that, that._beforeUpdate, update).then (processedData) ->
+      cleanData = helpers.pick processedData, that._allowedColumns
 
       query = that._mohair.update cleanData
-      sql = that.replacePlaceholders query.sql()
+      sql = helpers.replacePlaceholders query.sql()
 
       that.query(sql, query.params()).then (results) ->
-        afterQuery that, that._returnFirst, that._afterUpdate, results
+        helpers.afterQuery that, that._returnFirst, that._afterUpdate, results
 
   delete: ->
     that = this
 
     query = that._mohair.delete()
-    sql = that.replacePlaceholders query.sql()
+    sql = helpers.replacePlaceholders query.sql()
 
     that.query(sql, query.params()).then (results) ->
-      afterQuery that, that._returnFirst, that._afterDelete, results
+      helpers.afterQuery that, that._returnFirst, that._afterDelete, results
 
 ###################################################################################
 # query
@@ -259,10 +322,10 @@ module.exports =
 
     that = this
 
-    sql = that.replacePlaceholders that.sql()
+    sql = helpers.replacePlaceholders that.sql()
 
     that.query(sql, that.params()).then (results) ->
-      afterQuery that, that._returnFirst, that._afterSelect, results
+      helpers.afterQuery that, that._returnFirst, that._afterSelect, results
 
   first: (arg) ->
     if arg?
@@ -278,7 +341,7 @@ module.exports =
 
     query = @_mohair.limit(1)
 
-    sql = @replacePlaceholders query.sql()
+    sql = helpers.replacePlaceholders query.sql()
 
     that.query(sql, query.params()).then (results) ->
       results.rows? and results.rows.length isnt 0
@@ -290,14 +353,4 @@ module.exports =
   call: (f, args...) ->
     f.apply @, args
 
-  replacePlaceholders: (sql) ->
-    # replace ?, ?, ... with $1, $2, ...
-    index = 1
-    sql.replace /\?/g, -> '$' + index++
-
-  pickAllowedColumns: (record) ->
-    picked = {}
-    @_allowedColumns.forEach (column) ->
-      if (column of record)
-        picked[column] = record[column]
-    return picked
+  helpers: helpers
