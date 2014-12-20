@@ -143,20 +143,34 @@ module.exports =
 
   getConnection: (cb) ->
     connection = @_connection
+    debug = @_debug
 
     unless connection?
-      # TODO StateError
       throw new Error "the method you are calling requires a call to connection() before it"
     if 'function' is typeof connection
-      connection cb
-      return
+      return connection (err, result, done) ->
+        if err?
+          return cb err
+        debug?(
+          method: 'getConnection'
+          connection: result
+          isNewConnection: true
+        )
+        cb err, result, done
     setTimeout ->
+      debug?(
+        method: 'getConnection'
+        connection: connection
+        isNewConnection: false
+      )
       cb null, connection
 
   query: (sql, params) ->
     getConnection = @getConnection.bind(@)
 
-    @_debug?(
+    debug = @_debug
+
+    debug?(
       method: 'query'
       sql: sql
       params: params
@@ -170,6 +184,10 @@ module.exports =
           reject err
           return
         connection.query sql, params, (err, results) ->
+          debug?(
+            method: 'connection done'
+            connection: connection
+          )
           done?()
           if err?
             reject err
