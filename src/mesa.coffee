@@ -255,7 +255,7 @@ module.exports =
 
   find: (arg) ->
     if arg?
-      throw new Error "you called `.find()` with an argument but `.find()` ignores all arguments. find returns a promise! maybe you wanted to call the promise instead: `find().then(function(result) { ... })`"
+      throw new Error "you called .find() with an argument but .find() ignores all arguments. .find() returns a promise! maybe you wanted to call the promise instead: .find().then(function(result) { ... })"
 
     that = this
 
@@ -264,12 +264,18 @@ module.exports =
     that.query(sql, that.params()).then (results) ->
       afterQuery that, that._returnFirst, that._afterSelect, results
 
-  first: ->
+  first: (arg) ->
+    if arg?
+      throw new Error "you called .first() with an argument but .first() ignores all arguments. .first() returns a promise! maybe you wanted to call the promise instead: .first().then(function(result) { ... })"
+
     @limit(1)
       .returnFirst()
       .find()
 
-  exists: ->
+  exists: (arg) ->
+    if arg?
+      throw new Error "you called .exists() with an argument but .exists() ignores all arguments. .exists() returns a promise! maybe you wanted to call the promise instead: .exists().then(function(result) { ... })"
+
     query = @_mohair.limit(1)
 
     sql = @replacePlaceholders query.sql()
