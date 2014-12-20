@@ -243,20 +243,23 @@ module.exports =
     @wrapInConnection (connection) ->
       thatWithConnection = that.connection(connection)
       that.debug?(
-        event: 'transaction start'
+        method: 'wrapInTransaction'
+        event: 'start'
       )
       thatWithConnection.query('BEGIN;')
         .then ->
           block connection
         .then (result) ->
           that.debug?(
-            event: 'transaction commit'
+            method: 'wrapInTransaction'
+            event: 'commit'
           )
           thatWithConnection.query('COMMIT;').then ->
             result
         .catch (error) ->
           that.debug?(
-            event: 'transaction rollback'
+            method: 'wrapInTransaction'
+            event: 'rollback'
             error: error
           )
           thatWithConnection.query('ROLLBACK;').then ->
