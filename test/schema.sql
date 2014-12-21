@@ -22,11 +22,10 @@ CREATE TABLE event(
 );
 
 CREATE TABLE bitcoin_receive_address(
-  id SERIAL PRIMARY KEY,
-  address TEXT NOT NULL
+  id TEXT PRIMARY KEY
 );
 
-INSERT INTO bitcoin_receive_address(address) VALUES
+INSERT INTO bitcoin_receive_address(id) VALUES
   ('1K5oPr2BE4QQQ13tXmcfW9eteQCJh6g54u'),
   ('1GA1PqAwmGpj9Wp6r8zLoe5Gdi9hDsb8PS'),
   ('1JP45zuwzKXQu51AxmAKsqRnE68DoPnTPL'),
