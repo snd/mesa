@@ -47,6 +47,9 @@ helpers.pick = (record, keys) ->
       picked[column] = record[column]
   return picked
 
+helpers.ignoredArgumentWarning = (receiver) ->
+  "you called #{receiver} with an argument but #{receiver} ignores all arguments. #{receiver} returns a promise and maybe you wanted to call that promise instead: #{receiver}.then(function(result) { ... })"
+
 ###################################################################################
 # core
 
@@ -164,7 +167,7 @@ module.exports =
 
   getConnection: (arg) ->
     if arg?
-      throw new Error "you called .getConnection() with an argument but .getConnection() ignores all arguments. .getConnection() returns a promise! maybe you wanted to call the promise instead: .getConnection().then(function(result) { ... })"
+      throw new Error helpers.ignoredArgumentWarning '.getConnection()'
     connection = @_connection
     debug = @_debug
 
@@ -297,6 +300,8 @@ module.exports =
         helpers.afterQuery that, that._returnFirst, that._afterUpdate, results
 
   delete: ->
+    if arg?
+      throw new Error helpers.ignoredArgumentWarning '.delete()'
     that = this
 
     query = that._mohair.delete()
@@ -310,7 +315,7 @@ module.exports =
 
   find: (arg) ->
     if arg?
-      throw new Error "you called .find() with an argument but .find() ignores all arguments. .find() returns a promise! maybe you wanted to call the promise instead: .find().then(function(result) { ... })"
+      throw new Error helpers.ignoredArgumentWarning '.find()'
 
     that = this
 
@@ -321,7 +326,7 @@ module.exports =
 
   first: (arg) ->
     if arg?
-      throw new Error "you called .first() with an argument but .first() ignores all arguments. .first() returns a promise! maybe you wanted to call the promise instead: .first().then(function(result) { ... })"
+      throw new Error helpers.ignoredArgumentWarning '.first()'
 
     @limit(1)
       .returnFirst()
@@ -329,7 +334,7 @@ module.exports =
 
   exists: (arg) ->
     if arg?
-      throw new Error "you called .exists() with an argument but .exists() ignores all arguments. .exists() returns a promise! maybe you wanted to call the promise instead: .exists().then(function(result) { ... })"
+      throw new Error helpers.ignoredArgumentWarning '.exists()'
 
     query = @_mohair.limit(1)
 
