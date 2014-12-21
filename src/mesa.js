@@ -9,7 +9,7 @@ Promise = require('bluebird');
 helpers = {};
 
 helpers.schemaAwareEscape = function(string) {
-  return string.split(".").map(function(str) {
+  return string.split('.').map(function(str) {
     return "\"" + str + "\"";
   }).join('.');
 };
@@ -59,28 +59,6 @@ helpers.pick = function(record, keys) {
     }
   });
   return picked;
-};
-
-helpers.pgDestroyPool = function(pg, config) {
-  var pool, poolKey;
-  poolKey = JSON.stringify(config);
-  console.log('pgDestroyPool');
-  console.log('Object.keys(pg.pools.all)', Object.keys(pg.pools.all));
-  console.log('poolKey', poolKey);
-  pool = pg.pools.all[poolKey];
-  console.log('pool?', pool != null);
-  if (pool != null) {
-    return new Promise(function(resolve, reject) {
-      return pool.drain(function() {
-        return pool.destroyAllNow(function() {
-          delete pg.pools.all[poolKey];
-          return resolve();
-        });
-      });
-    });
-  } else {
-    return Promise.resolve();
-  }
 };
 
 module.exports = {
@@ -198,11 +176,19 @@ module.exports = {
     args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
     return this.fluent('_mohair', (_ref = this._mohair).returning.apply(_ref, args));
   },
-  connection: function(arg) {
+  setConnection: function(arg) {
+    var typeofArg;
+    typeofArg = typeof arg;
+    if (!(('function' === typeof arg) || (('object' === typeof arg) && (arg.query != null)))) {
+      throw new Error('.connection() must be called with either a connection object or a function that takes a callback and calls it with a connection');
+    }
     return this.fluent('_connection', arg);
   },
-  getConnection: function(cb) {
+  getConnection: function(arg) {
     var connection, debug;
+    if (arg != null) {
+      throw new Error("you called .getConnection() with an argument but .getConnection() ignores all arguments. .getConnection() returns a promise! maybe you wanted to call the promise instead: .getConnection().then(function(result) { ... })");
+    }
     connection = this._connection;
     debug = this._debug;
     if (connection == null) {
@@ -215,6 +201,7 @@ module.exports = {
           done = function() {
             if (typeof debug === "function") {
               debug({
+                method: 'getConnection',
                 event: 'connection .done() called',
                 connection: connection
               });
@@ -284,32 +271,35 @@ module.exports = {
     var that;
     that = this;
     return this.wrapInConnection(function(connection) {
-      var thatWithConnection;
-      thatWithConnection = that.connection(connection);
+      var withConnection;
+      withConnection = that.setConnection(connection);
       if (typeof that.debug === "function") {
         that.debug({
-          event: 'transaction start'
+          method: 'wrapInTransaction',
+          event: 'start'
         });
       }
-      return thatWithConnection.query('BEGIN;').then(function() {
+      return withConnection.query('BEGIN;').then(function() {
         return block(connection);
       }).then(function(result) {
         if (typeof that.debug === "function") {
           that.debug({
-            event: 'transaction commit'
+            method: 'wrapInTransaction',
+            event: 'commit'
           });
         }
-        return thatWithConnection.query('COMMIT;').then(function() {
+        return withConnection.query('COMMIT;').then(function() {
           return result;
         });
       })["catch"](function(error) {
         if (typeof that.debug === "function") {
           that.debug({
-            event: 'transaction rollback',
+            method: 'wrapInTransaction',
+            event: 'rollback',
             error: error
           });
         }
-        return thatWithConnection.query('ROLLBACK;').then(function() {
+        return withConnection.query('ROLLBACK;').then(function() {
           return Promise.reject(error);
         });
       });

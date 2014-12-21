@@ -9,7 +9,7 @@ helpers = {}
 # escape that handles table schemas correctly:
 # schemaAwareEscape('someschema.users') -> '"someschema"."users"
 helpers.schemaAwareEscape = (string) ->
-  string.split(".").map((str) -> "\"#{str}\"").join '.'
+  string.split('.').map((str) -> "\"#{str}\"").join '.'
 
 helpers.defaultMohair = mohair
   .escape(helpers.schemaAwareEscape)
@@ -46,23 +46,6 @@ helpers.pick = (record, keys) ->
     if (column of record)
       picked[column] = record[column]
   return picked
-
-helpers.pgDestroyPool = (pg, config) ->
-  poolKey = JSON.stringify(config)
-  console.log 'pgDestroyPool'
-  console.log 'Object.keys(pg.pools.all)', Object.keys(pg.pools.all)
-  console.log 'poolKey', poolKey
-  pool = pg.pools.all[poolKey]
-  console.log 'pool?', pool?
-  if pool?
-    new Promise (resolve, reject) ->
-      pool.drain ->
-        # https://github.com/coopernurse/node-pool#step-3---drain-pool-during-shutdown-optional
-        pool.destroyAllNow ->
-          delete pg.pools.all[poolKey]
-          resolve()
-  else
-    Promise.resolve()
 
 ###################################################################################
 # core
@@ -171,9 +154,9 @@ module.exports =
     @fluent '_mohair', @_mohair.returning args...
 
 ###################################################################################
-# connection
+# set and get connection
 
-  connection: (arg) ->
+  setConnection: (arg) ->
     typeofArg = typeof arg
     unless ('function' is typeof arg) or (('object' is typeof arg) and arg.query?)
       throw new Error '.connection() must be called with either a connection object or a function that takes a callback and calls it with a connection'
@@ -193,6 +176,7 @@ module.exports =
         return connection (err, result, realDone) ->
           done = ->
             debug?(
+              method: 'getConnection'
               event: 'connection .done() called'
               connection: connection
             )
@@ -218,7 +202,7 @@ module.exports =
         connection: connection
 
 ###################################################################################
-# nice promise based wrapper around node-postgres
+# promise wrapper around node-postgres
 
   wrapInConnection: (block) ->
     @getConnection().then ({connection, done}) ->
@@ -241,12 +225,12 @@ module.exports =
   wrapInTransaction: (block) ->
     that = this
     @wrapInConnection (connection) ->
-      thatWithConnection = that.connection(connection)
+      withConnection = that.setConnection(connection)
       that.debug?(
         method: 'wrapInTransaction'
         event: 'start'
       )
-      thatWithConnection.query('BEGIN;')
+      withConnection.query('BEGIN;')
         .then ->
           block connection
         .then (result) ->
@@ -254,7 +238,7 @@ module.exports =
             method: 'wrapInTransaction'
             event: 'commit'
           )
-          thatWithConnection.query('COMMIT;').then ->
+          withConnection.query('COMMIT;').then ->
             result
         .catch (error) ->
           that.debug?(
@@ -262,7 +246,7 @@ module.exports =
             event: 'rollback'
             error: error
           )
-          thatWithConnection.query('ROLLBACK;').then ->
+          withConnection.query('ROLLBACK;').then ->
             Promise.reject error
 
 ###################################################################################
@@ -322,7 +306,7 @@ module.exports =
       helpers.afterQuery that, that._returnFirst, that._afterDelete, results
 
 ###################################################################################
-# query
+# query: these functions have no side effects
 
   find: (arg) ->
     if arg?

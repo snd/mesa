@@ -18,7 +18,7 @@ module.exports =
         cb null, {rows: []}
     query = mesa
       .table('user')
-      .connection(mockConnection)
+      .setConnection(mockConnection)
       .allowedColumns(['a'])
       .beforeInsert (data) ->
         test.equal this, query
