@@ -206,8 +206,6 @@ module.exports =
           }
       ])
       .then (events) ->
-        console.log events
-
         innerQuery = eventTable
           .select(
             'user_id',
@@ -216,6 +214,9 @@ module.exports =
           )
           .where("data->>'type' = ?", 'view_homepage')
           .group('user_id')
+
+        joinQuery = mesa
+          .table({e1: innerQuery})
           .join('LEFT JOIN LATERAL')
 
         outerQuery = mesa
@@ -226,7 +227,9 @@ module.exports =
             'enter_credit_card'
             'enter_credit_card_time'
           ])
-          .table(innerQuery)
+          .table(joinQuery)
+
+        console.log outerQuery.sql()
 
         test.done()
 
