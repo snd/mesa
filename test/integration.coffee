@@ -230,8 +230,8 @@ module.exports =
 
         test.done()
 
-  'advisory locks and transactions': (test) ->
-    test.expect 7
+  'advisory locks and transactions (long version)': (test) ->
+    test.expect 2 + 5 + 4 + 3 + 2 + 1
 
     bitcoinReceiveAddress = mesa.table('bitcoin_receive_address')
 
@@ -300,19 +300,21 @@ module.exports =
                   address
 
     Promise.all(addressPromises).then (addresses) ->
-      console.log addresses
-      test.equal 34, addresses[0].id.length
-      test.equal 34, addresses[1].id.length
-      test.equal 34, addresses[2].id.length
-      test.equal 34, addresses[3].id.length
-      test.equal 34, addresses[4].id.length
-      test.ok not addresses[5]?
-      test.ok not addresses[6]?
-
+      test.equal 7, addresses.length
+      existing = []
+      addresses.forEach (address) ->
+        if address?
+          test.equal 34, address.id.length
+          existing.forEach (existing) ->
+            test.notEqual address.id, existing.id
+          existing.push address
+      test.equal 5, existing.length
       test.done()
 
-  'advisory locks (short version)': (test) ->
-    test.expect 7
+  'advisory locks (short subquery version)': (test) ->
+    test.expect 2 + 5 + 4 + 3 + 2 + 1
+
+    # for further information see the test immediately above
 
     bitcoinReceiveAddress = mesa.table('bitcoin_receive_address')
 
@@ -321,23 +323,24 @@ module.exports =
     # the subquery is executed first, acquires an exclusive lock for a row
     # and returns its id.
     addressPromises = [1..7].map ->
-      idOfAcquiredAddress = bitcoinReceiveAddress
+      idOfLockedAddress = bitcoinReceiveAddress
         .select('id')
         .where("pg_try_advisory_xact_lock(#{sqlTohashIdToBigint})")
         .limit(1)
 
       bitcoinReceiveAddress
-        .where(id: idOfAcquiredAddress)
+        .where(id: idOfLockedAddress)
         .returnFirst()
         .delete()
 
     Promise.all(addressPromises).then (addresses) ->
-      test.equal 34, addresses[0].id.length
-      test.equal 34, addresses[1].id.length
-      test.equal 34, addresses[2].id.length
-      test.equal 34, addresses[3].id.length
-      test.equal 34, addresses[4].id.length
-      test.ok not addresses[5]?
-      test.ok not addresses[6]?
-
+      test.equal 7, addresses.length
+      existing = []
+      addresses.forEach (address) ->
+        if address?
+          test.equal 34, address.id.length
+          existing.forEach (existing) ->
+            test.notEqual address.id, existing.id
+          existing.push address
+      test.equal 5, existing.length
       test.done()
