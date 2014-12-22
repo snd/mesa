@@ -61,6 +61,10 @@ helpers.pick = function(record, keys) {
   return picked;
 };
 
+helpers.ignoredArgumentWarning = function(receiver) {
+  return "you called " + receiver + " with an argument but " + receiver + " ignores all arguments. " + receiver + " returns a promise and maybe you wanted to call that promise instead: " + receiver + ".then(function(result) { ... })";
+};
+
 module.exports = {
   clone: function() {
     return Object.create(this);
@@ -187,7 +191,7 @@ module.exports = {
   getConnection: function(arg) {
     var connection, debug;
     if (arg != null) {
-      throw new Error("you called .getConnection() with an argument but .getConnection() ignores all arguments. .getConnection() returns a promise! maybe you wanted to call the promise instead: .getConnection().then(function(result) { ... })");
+      throw new Error(helpers.ignoredArgumentWarning('.getConnection()'));
     }
     connection = this._connection;
     debug = this._debug;
@@ -356,6 +360,9 @@ module.exports = {
   },
   "delete": function() {
     var query, sql, that;
+    if (typeof arg !== "undefined" && arg !== null) {
+      throw new Error(helpers.ignoredArgumentWarning('.delete()'));
+    }
     that = this;
     query = that._mohair["delete"]();
     sql = helpers.replacePlaceholders(query.sql());
@@ -366,7 +373,7 @@ module.exports = {
   find: function(arg) {
     var sql, that;
     if (arg != null) {
-      throw new Error("you called .find() with an argument but .find() ignores all arguments. .find() returns a promise! maybe you wanted to call the promise instead: .find().then(function(result) { ... })");
+      throw new Error(helpers.ignoredArgumentWarning('.find()'));
     }
     that = this;
     sql = helpers.replacePlaceholders(that.sql());
@@ -376,14 +383,14 @@ module.exports = {
   },
   first: function(arg) {
     if (arg != null) {
-      throw new Error("you called .first() with an argument but .first() ignores all arguments. .first() returns a promise! maybe you wanted to call the promise instead: .first().then(function(result) { ... })");
+      throw new Error(helpers.ignoredArgumentWarning('.first()'));
     }
     return this.limit(1).returnFirst().find();
   },
   exists: function(arg) {
     var query, sql;
     if (arg != null) {
-      throw new Error("you called .exists() with an argument but .exists() ignores all arguments. .exists() returns a promise! maybe you wanted to call the promise instead: .exists().then(function(result) { ... })");
+      throw new Error(helpers.ignoredArgumentWarning('.exists()'));
     }
     query = this._mohair.limit(1);
     sql = helpers.replacePlaceholders(query.sql());
