@@ -1,6 +1,6 @@
 # mesa
 
-[![NPM version](https://badge.fury.io/js/mesa.svg)](http://badge.fury.io/js/mesa)
+[![NPM Package](https://img.shields.io/npm/v/mesa.svg?style=flat)](https://www.npmjs.org/package/mesa)
 [![Build Status](https://travis-ci.org/snd/mesa.svg?branch=master)](https://travis-ci.org/snd/mesa/branches)
 [![Dependencies](https://david-dm.org/snd/mesa.svg)](https://david-dm.org/snd/mesa)
 
