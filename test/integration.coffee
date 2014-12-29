@@ -219,6 +219,18 @@ module.exports =
           .table({e1: innerQuery})
           .join('LEFT JOIN LATERAL')
 
+        lateralQuery = mesa
+          .table('event')
+          .select(
+            enter_credit_card: 1
+            enter_credit_card_time: 'created_at'
+          )
+          # TODO do mesa.escaped here
+          .where(user_id: mesa.raw('e1.user_id'))
+          .where("data->>'type' = ?", 'enter_credit_card')
+          .order('created_at')
+          .limit(1)
+
         outerQuery = mesa
           .select([
             'user_id'
@@ -230,6 +242,7 @@ module.exports =
           .table(joinQuery)
 
         console.log outerQuery.sql()
+        console.log lateralQuery.sql()
 
         test.done()
 
