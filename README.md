@@ -325,6 +325,30 @@ tell node-postgres to return the connection to the pool.
 otherwise you will leak that connection, which is **very bad** since
 your application will run out of connections and hang.
 
+
+- `pgCallbackConnection(cb)` connects to `blaze_config_databaseUrl`
+   and calls `cb(connection, error, done)`
+- `pgConnection()` -> `Promise({connection: ..., done: ...})`
+   connects to `blaze_config_databaseUrl`
+   and returns promise containing `connection` and `done` callback
+- `pgQuery(connection, sql, [params])` -> `Promise(queryResult)`
+   runs query on connection
+- `pgWrapInConnection(function(connection) {function body that uses connection})` -> `Promise returned by function`
+   connects to `blaze_config_databaseUrl`,
+   calls function with connection,
+   closes connection
+- `pgSingleQuery(sql, params)` -> `Promise(queryResult)`
+   connects to `blaze_config_databaseUrl`,
+   runs query, closes connection
+- `pgWrapInTransaction(function(connection) {function body that uses connection})` -> `Promise returned by function`
+   connects to `blaze_config_databaseUrl`,
+   begins transactions
+   calls function with connection,
+   rolls transaction back if function throws or returns promise that is rejected,
+   commits transaction otherwise,
+   closes connection in any case
+
+
 ## changelog
 
 ### 
@@ -333,12 +357,7 @@ your application will run out of connections and hang.
 
 ## TODO
 
-- second integration test
-
 - better debugging
-  - log query completion
-- throw when first, find, delete, exists get called with arguments
-  - test that
 - unit test that escape works with schemas
 - `.omit()` as a afterInsert
   - would be nice if it could use the pipelining
