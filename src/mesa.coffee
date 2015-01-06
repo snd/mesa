@@ -213,7 +213,7 @@ module.exports =
         done?()
 
   query: (sql, params) ->
-    @debug?(
+    @_debug?(
       method: 'query'
       sql: sql
       params: params
@@ -229,7 +229,7 @@ module.exports =
     that = this
     @wrapInConnection (connection) ->
       withConnection = that.setConnection(connection)
-      that.debug?(
+      that._debug?(
         method: 'wrapInTransaction'
         event: 'start'
       )
@@ -237,14 +237,14 @@ module.exports =
         .then ->
           block connection
         .then (result) ->
-          that.debug?(
+          that._debug?(
             method: 'wrapInTransaction'
             event: 'commit'
           )
           withConnection.query('COMMIT;').then ->
             result
         .catch (error) ->
-          that.debug?(
+          that._debug?(
             method: 'wrapInTransaction'
             event: 'rollback'
             error: error
