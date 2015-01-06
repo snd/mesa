@@ -172,7 +172,7 @@ module.exports =
     debug = @_debug
 
     unless connection?
-      throw new Error "the method you are calling requires a call to connection() before it"
+      throw new Error "the method you are calling requires a call to .setConnection() before it"
 
     new Promise (resolve, reject) ->
       if 'function' is typeof connection
