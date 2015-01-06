@@ -196,7 +196,7 @@ module.exports = {
     connection = this._connection;
     debug = this._debug;
     if (connection == null) {
-      throw new Error("the method you are calling requires a call to connection() before it");
+      throw new Error("the method you are calling requires a call to .setConnection() before it");
     }
     return new Promise(function(resolve, reject) {
       if ('function' === typeof connection) {
@@ -253,8 +253,8 @@ module.exports = {
     });
   },
   query: function(sql, params) {
-    if (typeof this.debug === "function") {
-      this.debug({
+    if (typeof this._debug === "function") {
+      this._debug({
         method: 'query',
         sql: sql,
         params: params
@@ -277,8 +277,8 @@ module.exports = {
     return this.wrapInConnection(function(connection) {
       var withConnection;
       withConnection = that.setConnection(connection);
-      if (typeof that.debug === "function") {
-        that.debug({
+      if (typeof that._debug === "function") {
+        that._debug({
           method: 'wrapInTransaction',
           event: 'start'
         });
@@ -286,8 +286,8 @@ module.exports = {
       return withConnection.query('BEGIN;').then(function() {
         return block(connection);
       }).then(function(result) {
-        if (typeof that.debug === "function") {
-          that.debug({
+        if (typeof that._debug === "function") {
+          that._debug({
             method: 'wrapInTransaction',
             event: 'commit'
           });
@@ -296,8 +296,8 @@ module.exports = {
           return result;
         });
       })["catch"](function(error) {
-        if (typeof that.debug === "function") {
-          that.debug({
+        if (typeof that._debug === "function") {
+          that._debug({
             method: 'wrapInTransaction',
             event: 'rollback',
             error: error
