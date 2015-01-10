@@ -1,6 +1,9 @@
 language: node_js
 node_js:
   - "0.10"
-script: npm test
+script: node_modules/nodeunit/bin/nodeunit test/*.coffee"
+env:
+  - DATABASE_NAME=travis_ci_test
+  - DATABASE_USER=postgres
 addons:
   postgresql: "9.3"

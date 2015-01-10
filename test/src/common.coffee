@@ -11,11 +11,12 @@ mesa = require '../../src/mesa'
 ###################################################################################
 # constants
 
-DATABASE_NAME = 'mesa_integration_test'
+DATABASE_NAME = process.env.DATABASE_NAME or 'mesa_integration_test'
+DATABASE_USER = process.env.DATABASE_USER or 'postgres'
 DATABASE_URL = "postgres://localhost/#{DATABASE_NAME}"
 
-DROP_DATABASE_COMMAND = "psql -c 'DROP DATABASE IF EXISTS #{DATABASE_NAME};'"
-CREATE_DATABASE_COMMAND = "psql -c 'CREATE DATABASE #{DATABASE_NAME};'"
+DROP_DATABASE_COMMAND = "psql -c 'DROP DATABASE IF EXISTS #{DATABASE_NAME};' -U #{DATABASE_USER}"
+CREATE_DATABASE_COMMAND = "psql -c 'CREATE DATABASE #{DATABASE_NAME};' -U #{DATABASE_USER}"
 
 ###################################################################################
 # exports

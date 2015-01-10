@@ -221,9 +221,7 @@ user
 ``` js
 var _ = require('lodash');
 
-  .afterSelectEach('omitSensitive', function(record) {
-    return _.omit(record, 'password');
-  });
+  .queueAfterEachSelect(_.omit, 'password')
 ```
 
 using hooks you can simulate the active record pattern like this:
@@ -738,6 +736,8 @@ your application will run out of connections and hang.
 ## [license: MIT](LICENSE)
 
 ## TODO
+
+- make travis tests work
 
 - real world test database
   - movies

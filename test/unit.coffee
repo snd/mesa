@@ -3,7 +3,7 @@ mesa = require '../src/mesa'
 module.exports =
 
   'attached function is called with correct `this` value': (test) ->
-    query = mesa.clone()
+    query = Object.create mesa
     query.attached = ->
       test.equal this, query
       test.done()
@@ -23,6 +23,26 @@ module.exports =
       .queueBeforeEachInsert (data) ->
         test.equal this, query
         return data
+
+    query.insert({a: 1}).then ->
+      test.done()
+
+  'queueBeforeEachInsert with default args is called with correct `this` value': (test) ->
+    test.expect 3
+
+    mockConnection =
+      query: (sql, params, cb) ->
+        cb null, {rows: []}
+    query = mesa
+      .table('user')
+      .setConnection(mockConnection)
+      .allow(['a'])
+      .queueBeforeEachInsert ((data, arg2, arg3) ->
+          test.equal this, query
+          test.equal arg2, 'arg2'
+          test.equal arg3, 'arg3'
+          return data
+      ), 'arg2', 'arg3'
 
     query.insert({a: 1}).then ->
       test.done()

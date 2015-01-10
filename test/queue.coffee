@@ -1,9 +1,8 @@
-{setup, teardown, mesa, spy} = require './src/common'
+Promise = require 'bluebird'
+
+{setup, teardown, mesa} = require './src/common'
 
 module.exports =
-
-  'setUp': setup
-  'tearDown': teardown
 
   'adding to queueBeforeInsert works correctly': (test) ->
     instance = mesa
@@ -36,15 +35,12 @@ module.exports =
     test.equal instance._queueBeforeEachUpdate.length, 2
     test.equal instance._queueBeforeEachUpdate[1], beforeEachUpdate
 
-    beforeEachAlpha = ->
-    beforeEachBravo = ->
-    instance = instance.queueBeforeEach beforeEachAlpha, beforeEachBravo
-    test.equal instance._queueBeforeEachInsert.length, 4
-    test.equal instance._queueBeforeEachInsert[2], beforeEachAlpha
-    test.equal instance._queueBeforeEachInsert[3], beforeEachBravo
-    test.equal instance._queueBeforeEachUpdate.length, 4
-    test.equal instance._queueBeforeEachUpdate[2], beforeEachAlpha
-    test.equal instance._queueBeforeEachUpdate[3], beforeEachBravo
+    beforeEach = ->
+    instance = instance.queueBeforeEach beforeEach
+    test.equal instance._queueBeforeEachInsert.length, 3
+    test.equal instance._queueBeforeEachInsert[2], beforeEach
+    test.equal instance._queueBeforeEachUpdate.length, 3
+    test.equal instance._queueBeforeEachUpdate[2], beforeEach
 
     test.done()
 
@@ -84,7 +80,7 @@ module.exports =
 
     test.done()
 
-  'adding to queueAfterEach works correctly': (test) ->
+  'adding to queueAfterEach* works correctly': (test) ->
     instance = mesa
 
     after = ->
@@ -120,32 +116,224 @@ module.exports =
 
     test.done()
 
-  'before queues are executed correctly for insert': (test) ->
-    test.done()
+  'queues are executed correctly for insert': (test) ->
+    test.expect 27
+    input1 = {}
+    input2 = {}
+    input3 = {}
+    input4 = {a: 1, b: 2, c: 3}
 
-  'before queues are executed correctly for update': (test) ->
-    test.done()
+    output1 = {}
+    output2 = {}
+    output3 = {}
+    output4 = {}
 
-  'after queues are executed correctly for select': (test) ->
-    test.done()
+    row = {}
+    rows = [row]
+    results =
+      rows: rows
 
-  'after queues are executed correctly for insert': (test) ->
-    test.done()
+    mesa = Object.create mesa
+    mesa.query = (sql, params) ->
+      test.equal sql, 'INSERT INTO "movie"("a", "b", "c") VALUES ($1, $2, $3) RETURNING *'
+      test.deepEqual params, [1, 2, 3]
+      return Promise.resolve results
 
-  'after queues are executed correctly for update': (test) ->
-    test.done()
+    mesa
+      .table('movie')
+      .unsafe()
+      .queueBeforeInsert ((arg1, arg2, arg3) ->
+        test.equal arg1.length, 1
+        test.equal arg1[0], input1
+        test.equal arg2, 'arg2'
+        test.equal arg3, 'arg3'
+        [input2]
+      ), 'arg2', 'arg3'
+      .queueBeforeEachInsert ((arg1, arg2, arg3) ->
+        test.equal arg1, input2
+        test.equal arg2, 'arg2'
+        test.equal arg3, 'arg3'
+        Promise.resolve input3
+      ), 'arg2', 'arg3'
+      .queueBeforeEach ((arg1, arg2, arg3) ->
+        test.equal arg1, input3
+        test.equal arg2, 'arg2'
+        test.equal arg3, 'arg3'
+        input4
+      ), 'arg2', 'arg3'
+      .queueAfter ((arg1, arg2, arg3) ->
+        test.equal arg1, rows
+        test.equal arg2, 'arg2'
+        test.equal arg3, 'arg3'
+        Promise.resolve [output1]
+      ), 'arg2', 'arg3'
+      .queueAfterInsert ((arg1, arg2, arg3) ->
+        test.equal arg1.length, 1
+        test.equal arg1[0], output1
+        test.equal arg2, 'arg2'
+        test.equal arg3, 'arg3'
+        [output2]
+      ), 'arg2', 'arg3'
+      .queueAfterEach ((arg1, arg2, arg3) ->
+        test.equal arg1, output2
+        test.equal arg2, 'arg2'
+        test.equal arg3, 'arg3'
+        output3
+      ), 'arg2', 'arg3'
+      .queueAfterEachInsert ((arg1, arg2, arg3) ->
+        test.equal arg1, output3
+        test.equal arg2, 'arg2'
+        test.equal arg3, 'arg3'
+        output4
+      ), 'arg2', 'arg3'
+      .insert([input1])
+      .then (outputs) ->
+        test.equal outputs.length, 1
+        test.equal outputs[0], output4
+        test.done()
 
-  'after queues are executed correctly for delete': (test) ->
-    test.done()
+  'queues are executed correctly for update': (test) ->
+    test.expect 11
+    input1 = {}
+    input2 = {}
+    input3 = {a: 1, b: 2, c: 3}
 
-#
-#   'omit sensitive': (test) ->
-#
-#   'camelcase snakecase': (test) ->
-#
-#   'if queue fails all fails': (test) ->
-#
-#     hashPassword
-#       .before
-#
-#     test.done()
+    output1 = {}
+    output2 = {}
+    output3 = {}
+    output4 = {}
+
+    row = {}
+    rows = [row]
+    results =
+      rows: rows
+
+    mesa = Object.create mesa
+    mesa.query = (sql, params) ->
+      test.equal sql, 'UPDATE "movie" SET "a" = $1, "b" = $2, "c" = $3 RETURNING *'
+      test.deepEqual params, [1, 2, 3]
+      return Promise.resolve results
+
+    mesa
+      .table('movie')
+      .unsafe()
+      .queueBeforeEachUpdate ((arg1) ->
+        test.equal arg1, input1
+        Promise.resolve input2
+      )
+      .queueBeforeEach ((arg1) ->
+        test.equal arg1, input2
+        input3
+      )
+      .queueAfter ((arg1) ->
+        test.equal arg1, rows
+        Promise.resolve [output1]
+      )
+      .queueAfterUpdate ((arg1) ->
+        test.equal arg1.length, 1
+        test.equal arg1[0], output1
+        [output2]
+      )
+      .queueAfterEach ((arg1) ->
+        test.equal arg1, output2
+        output3
+      )
+      .queueAfterEachUpdate ((arg1) ->
+        test.equal arg1, output3
+        output4
+      )
+      .update(input1)
+      .then (outputs) ->
+        test.equal outputs.length, 1
+        test.equal outputs[0], output4
+        test.done()
+
+  'queues are executed correctly for select': (test) ->
+    test.expect 9
+
+    output1 = {}
+    output2 = {}
+    output3 = {}
+    output4 = {}
+
+    row = {}
+    rows = [row]
+    results =
+      rows: rows
+
+    mesa = Object.create mesa
+    mesa.query = (sql, params) ->
+      test.equal sql, 'SELECT * FROM "movie"'
+      test.deepEqual params, []
+      return Promise.resolve results
+
+    mesa
+      .table('movie')
+      .unsafe()
+      .queueAfter ((arg1) ->
+        test.equal arg1, rows
+        Promise.resolve [output1]
+      )
+      .queueAfterSelect ((arg1) ->
+        test.equal arg1.length, 1
+        test.equal arg1[0], output1
+        [output2]
+      )
+      .queueAfterEach ((arg1) ->
+        test.equal arg1, output2
+        output3
+      )
+      .queueAfterEachSelect ((arg1) ->
+        test.equal arg1, output3
+        output4
+      )
+      .find()
+      .then (outputs) ->
+        test.equal outputs.length, 1
+        test.equal outputs[0], output4
+        test.done()
+
+  'queues are executed correctly for delete': (test) ->
+    test.expect 8
+
+    output1 = {}
+    output2 = {}
+    output3 = {}
+    output4 = {}
+
+    row = {}
+    rows = [row]
+    results =
+      rows: rows
+
+    mesa = Object.create mesa
+    mesa.query = (sql, params) ->
+      test.equal sql, 'DELETE FROM "movie" RETURNING *'
+      test.deepEqual params, []
+      return Promise.resolve results
+
+    mesa
+      .table('movie')
+      .unsafe()
+      .queueAfter ((arg1) ->
+        test.equal arg1, rows
+        Promise.resolve [output1]
+      )
+      .queueAfterDelete ((arg1) ->
+        test.equal arg1.length, 1
+        test.equal arg1[0], output1
+        [output2]
+      )
+      .queueAfterEach ((arg1) ->
+        test.equal arg1, output2
+        output3
+      )
+      .queueAfterEachDelete ((arg1) ->
+        test.equal arg1, output3
+        output4
+      )
+      .returnFirst()
+      .delete()
+      .then (output) ->
+        test.equal output, output4
+        test.done()

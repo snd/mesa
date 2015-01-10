@@ -31,14 +31,11 @@ helpers.ignoredArgumentWarning = (receiver) ->
 
 mesa =
 
-  clone: ->
-    Object.create @
-
   # the magic behind mohair's fluent interface:
   # prototypically inherit from `this` and set `key` to `value`
 
   fluent: (key, value) ->
-    object = @clone()
+    object = Object.create @
     object[key] = value
     return object
 
@@ -393,12 +390,15 @@ mesa =
 # automatic construction of setters and properties for queue:
 # (automating this prevents copy & paste errors)
 
+payload = (f, args...) ->
+  if args.length is 0 then f else _.partialRight f, args...
+
 setQueueProperties = (object, suffix) ->
   setterPropertyName = 'queue' + suffix
   dataPropertyName = '_' + setterPropertyName
   object[dataPropertyName] = []
   object[setterPropertyName] = (args...) ->
-    @fluent dataPropertyName, @[dataPropertyName].concat _.flatten(args)
+    @fluent dataPropertyName, @[dataPropertyName].concat [payload args...]
 
 # queueBeforeInsert, queueBeforeEachInsert
 # queueBeforeEachUpdate (just that because the update is a single object/record)
@@ -417,24 +417,24 @@ for phase in ['Select', 'Insert', 'Update', 'Delete']
   setQueueProperties(mesa, 'AfterEach' + phase)
 
 mesa.queueBeforeEach = (args...) ->
-  object = @clone()
+  object = Object.create @
   ['Insert', 'Update'].forEach (phase) ->
     propertyName = '_queueBeforeEach' + phase
-    object[propertyName] = object[propertyName].concat _.flatten(args)
+    object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
 mesa.queueAfter = (args...) ->
-  object = @clone()
+  object = Object.create @
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfter' + phase
-    object[propertyName] = object[propertyName].concat _.flatten(args)
+    object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
 mesa.queueAfterEach = (args...) ->
-  object = @clone()
+  object = Object.create @
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfterEach' + phase
-    object[propertyName] = object[propertyName].concat _.flatten(args)
+    object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
 ################################################################################
