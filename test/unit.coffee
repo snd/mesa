@@ -10,7 +10,7 @@ module.exports =
 
     query.attached()
 
-  'beforeInsert callback is called with correct `this` value': (test) ->
+  'queueBeforeEachInsert is called with correct `this` value': (test) ->
     test.expect 1
 
     mockConnection =
@@ -19,10 +19,27 @@ module.exports =
     query = mesa
       .table('user')
       .setConnection(mockConnection)
-      .allowedColumns(['a'])
-      .beforeInsert (data) ->
+      .allow(['a'])
+      .queueBeforeEachInsert (data) ->
         test.equal this, query
         return data
 
     query.insert({a: 1}).then ->
       test.done()
+
+  '.call(f) is called with correct `this` value': (test) ->
+    f = (x) ->
+      test.equal this, mesa
+      test.equal x, 'x'
+      test.done()
+
+    mesa.call f, 'x'
+
+  'getTable': (test) ->
+    # TODO
+    # test.equal 'user', mesa.table('user').getTable()
+    test.done()
+
+  'complex mohair query with sql and params': (test) ->
+    # TODO
+    test.done()

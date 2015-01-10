@@ -1,5 +1,29 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+--------------------------------------------------------------------------------
+-- movie
+
+CREATE TABLE person(
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL
+);
+
+CREATE TABLE movie(
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  director_id uuid NOT NULL REFERENCES person(id),
+  name TEXT NOT NULL
+);
+
+
+-- person is an actor in the movie
+CREATE TABLE performance(
+  person_id uuid NOT NULL REFERENCES person(id),
+  movie_id uuid NOT NULL REFERENCES person(id)
+);
+
+--------------------------------------------------------------------------------
+-- user
+
 CREATE TABLE "user"(
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL
@@ -20,6 +44,9 @@ CREATE TABLE event(
   created_at timestamptz NOT NULL,
   data JSON
 );
+
+--------------------------------------------------------------------------------
+-- bitcoin
 
 CREATE TABLE bitcoin_receive_address(
   id TEXT PRIMARY KEY

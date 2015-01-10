@@ -36,7 +36,8 @@
   },
   "dependencies": {
     "mohair": "0.13.0-rc.1",
-    "bluebird": "2.4.0"
+    "bluebird": "2.6.2",
+    "lodash": "2.4.1"
   },
   "devDependencies": {
     "coffee-script": "1.8.0",
@@ -44,12 +45,10 @@
     "pg": "4.1.1"
   },
   "scripts": {
-    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-    "clean": "rm -f src/*.js",
-    "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-    "pretest": "rm -f src/*.js",
-    "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee || :",
-    "posttest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee"
+    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output lib/ src/",
+    "prepublish": "npm run compile",
+    "pretest": "npm run compile",
+    "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee"
   },
   "main": "src/mesa"
 }
