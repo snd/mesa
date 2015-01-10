@@ -11,11 +11,13 @@ mesa = require '../../src/mesa'
 ###################################################################################
 # constants
 
-DATABASE_NAME = process.env.DATABASE_NAME or 'mesa_test'
+# for defaults
+DATABASE_NAME = 'mesa_test'
+
 DATABASE_URL = process.env.DATABASE_URL or "postgres://localhost/#{DATABASE_NAME}"
 
 DROP_DATABASE = process.env.DROP_DATABASE or "psql -c 'DROP DATABASE IF EXISTS #{DATABASE_NAME};'"
-CREATE_DATABASE = process.env.DROP_DATABASE or "psql -c 'CREATE DATABASE #{DATABASE_NAME};'"
+CREATE_DATABASE = process.env.CREATE_DATABASE or "psql -c 'CREATE DATABASE #{DATABASE_NAME};'"
 
 ###################################################################################
 # exports
