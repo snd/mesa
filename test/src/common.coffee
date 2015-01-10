@@ -23,7 +23,9 @@ CREATE_DATABASE = process.env.DROP_DATABASE or "psql -c 'CREATE DATABASE #{DATAB
 module.exports =
   DATABASE_URL: DATABASE_URL
 
-  mesa: mesa.setConnection (cb) -> pg.connect DATABASE_URL, cb
+  mesa: mesa
+    .setConnection (cb) -> pg.connect DATABASE_URL, cb
+    .debug (args...) -> console.log args[...3]...
 
   spy: (inner = ->) ->
     spy = (args...) ->
