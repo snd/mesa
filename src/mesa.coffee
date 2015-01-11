@@ -355,7 +355,8 @@ mesa =
 # embed
 
   # TODO improve name
-  fetchAssociated: (records, otherTable, thisKey, otherKey) ->
+  # TODO possibly take an options object
+  findOther: (records, otherTable, thisKey, otherKey) ->
     condition = {}
     condition[otherKey] =
       if 'function' is typeof thisKey
@@ -367,7 +368,7 @@ mesa =
       .find()
 
   baseEmbed: (records, otherTable, options) ->
-    @fetchAssociated(records, otherTable, options.thisKey, options.otherKey)
+    @findOther(records, otherTable, options.thisKey, options.otherKey)
       .then (otherRecords) ->
         grouped = _.groupBy otherRecords, options.otherKey
         records.forEach (record) ->
@@ -379,7 +380,7 @@ mesa =
           associated = grouped[thisValue] or []
           if options.many
             record[options.as] = associated
-          else if associated[0]
+          else if associated[0]?
             record[options.as] = associated[0]
         return records
 
