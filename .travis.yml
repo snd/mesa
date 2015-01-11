@@ -6,6 +6,6 @@ env:
   global:
     - DROP_DATABASE="psql -c 'DROP DATABASE IF EXISTS travis_ci_test' -U postgres"
     - CREATE_DATABASE="psql -c 'CREATE DATABASE travis_ci_test' -U postgres"
-    - DATABASE_URL="postgres://postgres:@localhost/travis_ci_test"
+    - DATABASE_URL="postgres://postgres@localhost/travis_ci_test"
 addons:
   postgresql: "9.3"

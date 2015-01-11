@@ -43,14 +43,12 @@ mesa =
   returnFirst: (arg = true) ->
     @fluent '_returnFirst', arg
 
-  table: (arg) ->
-    @fluent '_mohair', @_mohair.table arg
-
-  getTable: ->
-    @_mohair.getTable()
-
   debug: (arg) ->
     @fluent '_debug', arg
+
+  # call a one-off function as if it were part of mesa
+  call: (f, args...) ->
+    f.apply @, args
 
 ################################################################################
 # mass assignment protection
@@ -76,46 +74,7 @@ mesa =
     _.pick record, @_allowed
 
 ################################################################################
-# embedding associated data
-
-  _primaryKey: 'id'
-  primaryKey: (arg) ->
-    @fluent '_primaryKey', arg
-  getPrimaryKey: ->
-    @_primaryKey
-
-  embedBelongsTo: (records, table, options) ->
-    condition = {}
-    condition[options.primaryKey] = _.pick records, options.foreignKey
-    options.table
-      .where(condition)
-      .then (otherRecords) ->
-        grouped = _.groupBy otherRecords, options.primaryKey
-        records.forEach (record) ->
-          foreignKey = record[options.foreignKey]
-          record[options.as] = grouped[foreignKey][0]
-        return records
-
-  # foreignKey in this table
-  # primaryKey in other table
-  queueEmbedBelongsTo: (table, options) ->
-    @queueAfter (records) ->
-
-    otherTableName = options.table?.getTable?()
-    unless otherTableName?
-      throw new Error 'options.table must be a mesa instance'
-    options.foreignKey ?= otherTableName + '_id'
-    options.primaryKey ?= otherTableName.getPrimaryKey()
-    # TODO camelcase this
-    options.as ?= tableName
-
-    @after (records) ->
-
-  queueEmbedHasOne: (options) ->
-    # first()
-
-################################################################################
-# the underlying mohair query builder instance
+# pass throughs to the underlying mohair query builder instance
 
   _mohair: helpers.defaultMohair
 
@@ -126,10 +85,17 @@ mesa =
   params: ->
     @_mohair.params()
 
-  # pass through to mohair
-
   raw: (args...) ->
     @_mohair.raw args...
+
+  table: (arg) ->
+    @fluent '_mohair', @_mohair.table arg
+
+  getTable: ->
+    @_mohair.getTable()
+
+  from: (args...) ->
+    @fluent '_mohair', @_mohair.from args...
 
   where: (args...) ->
     @fluent '_mohair', @_mohair.where args...
@@ -246,7 +212,6 @@ mesa =
             Promise.reject error
 
 ################################################################################
-# what happens after the promise returned by .query(sql, params) is resolved
 
   runQueue: (queue, value) ->
     context = @
@@ -378,13 +343,93 @@ mesa =
       results.rows? and results.rows.length isnt 0
 
 ################################################################################
-# helper functions
+# primary key (used by embeds)
 
-  # call a one-off function as if it were part of mesa
-  call: (f, args...) ->
-    f.apply @, args
+  _primaryKey: 'id'
+  primaryKey: (arg) ->
+    @fluent '_primaryKey', arg
+  getPrimaryKey: ->
+    @_primaryKey
 
-  helpers: helpers
+################################################################################
+# embed
+
+  baseEmbed: (records, otherTable, options) ->
+    condition = {}
+    condition[options.otherKey] =
+      if 'function' is typeof options.thisKey
+        records.map options.thisKey
+      else
+        _.pluck records, options.thisKey
+    otherTable
+      .where(condition)
+      .find()
+      .then (otherRecords) ->
+        grouped = _.groupBy otherRecords, options.otherKey
+        records.forEach (record) ->
+          thisValue =
+            if 'function' is typeof options.thisKey
+              options.thisKey record
+            else
+              record[options.thisKey]
+          associated = grouped[thisValue]
+          record[options.as] = if options.many then associated else associated[0]
+        return records
+
+  defaultsForEmbed: (otherTable, immutableOptions) ->
+    thisTableName = @getTable()
+    otherTableName = otherTable.getTable()
+
+    options = if immutableOptions? then _.clone immutableOptions else {}
+
+    options.thisIsForeign ?= false
+
+    unless options.thisKey?
+      if options.thisIsForeign
+        unless thisTableName?
+          throw new Error 'default for embed option `thisKey` requires call to .table(name) on this table'
+        options.thisKey = otherTableName + '_' + otherTable.getPrimaryKey()
+      else
+        options.thisKey = @getPrimaryKey()
+
+    unless options.otherKey?
+      if options.thisIsForeign
+        options.otherKey = otherTable.getPrimaryKey()
+      else
+        unless otherTableName?
+          throw new Error 'default for embed option `otherKey` requires call to .table(name) on other table'
+        options.otherKey = thisTableName + '_' + @getPrimaryKey()
+
+    options.many ?= false
+
+    unless options.as?
+      unless otherTableName?
+        throw new Error 'default for embed option `as` requires call to .table(name) on other table'
+      options.as = if options.many then otherTableName + 's' else otherTableName
+
+    return options
+
+  embed: (records, otherTable, options) ->
+    @baseEmbed records, otherTable, @defaultsForEmbed otherTable, options
+
+  queueEmbed: (otherTable, options) ->
+    @queueAfter _.partialRight @embed, otherTable, options
+
+  # `foreignKey` in `this` table points to `primaryKey` in the `otherTable`
+  queueEmbedBelongsTo: (otherTable, immutableOptions) ->
+    options = if immutableOptions then _.clone immutableOptions else {}
+    options.otherIsForeign ?= false
+    @queueEmbed otherTable, options
+
+  # `primaryKey` in `this` table points to `foreignKey` in the `otherTable`
+  queueEmbedHasOne: (otherTable, options) ->
+    @queueEmbed otherTable, options
+
+  # `primaryKey` in `this` table points to `foreignKey` in the `otherTable`
+  queueEmbedHasMany: (otherTable, options) ->
+    options = if immutableOptions then _.clone immutableOptions else {}
+    options.many ?= true
+    @queueEmbed otherTable, options
 
 ################################################################################
 # automatic construction of setters and properties for queue:
@@ -443,3 +488,5 @@ mesa.queueAfterEach = (args...) ->
 module.exports = mesa
   # enable mass assignment protection
   .queueBeforeEach(mesa.pickAllowed)
+
+module.exports.helpers = helpers

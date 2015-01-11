@@ -334,7 +334,8 @@ neither does it set some
 instead it uses the hooks to queue that associations be
 fetched after a find, first, delete and update.
 
-one additional query
+use one additional query to fetch all 
+and then associate them with the records
 
 ``` js
 commentTable
@@ -737,26 +738,107 @@ your application will run out of connections and hang.
 
 ## TODO
 
-- make travis tests work
-
 - real world test database
   - movies
 
+- integration tests for embeds
+
+- fix mohair to make travis tests work
+
+- do not side effect function arguments (options)
 - make sure that every function is exercised
 - test functions in more isolation !!!
-- association integration tests
 - expand active records integration test
 
-- better debugging
 - unit test that escape works with schemas
-- `.omit()` as a afterInsert
-  - would be nice if it could use the pipelining
-- function to wrap every result in a class
-  - would be nice if it could use the pipelining
-- EMBEDS !!!
 - test those really hardcore scenarios with mesas integration tests
   - which ones?
 - improve keywords in package.json
-- test that insert with array
 
-- snakecase to camelcase conversion in hooks
+#mesa
+
+mesa is just query execution
+
+it uses promises to manage async code
+
+
+there are two kinds of functions: fluent and endpoints.
+fluent return a new mesa instance which prototypically inherits.
+endpoints return a promise.
+getters return some information: sql(), params(), mesa.info()
+both don’t change the mesa instance !
+
+connection management
+queries
+dealing with data records that are inserted and selected
+functional style
+
+define functions to be run before and after queries
+
+info():
+mohair.info()
+explicit connection or not
+steps
+execution order
+
+// runs for each record
+// runs for the entire collection
+
+before key
+beforeInsertRecord
+beforeUpdateRecord
+
+beforeCollection
+beforeInsertCollection
+
+you can unset by calling removeBeforeCollection(‘foo’)
+you can overwrite by calling again
+
+afterRecord
+afterCollection
+
+afterRecordInsert
+
+afterCollectionInsert
+
+afterRecordDelete
+
+you can call removeBeforeInsert(‘pick-allowed’) to disable it
+
+all steps are called with the mesa instance as `this`
+
+afterDeleteArray key
+
+replace placeholders in escape function and in .sql()
+
+
+steps to be done with the data
+
+write examples for use cases into readme
+
+use cases:
+
+filter data / prevent mass assignment
+convert to/from Facebook immutable data and/or mori data
+auto set created_at / updated_at timestamps
+hash passwords
+omit sensitive data (passwords) from outputs
+fetch and embed associated data
+auto convert from camel case to underscore and vice versa
+wrap data in instances
+
+
+“rohr” or cathode
+
+
+merge
+
+provide as many embed helpers as needed
+
+hooks play super nice with promises
+
+
+
+
+
+order(foo: ‘desc’) (is a mohair thing)

@@ -11,14 +11,13 @@ CREATE TABLE person(
 CREATE TABLE movie(
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   director_id uuid NOT NULL REFERENCES person(id),
+  writer_id uuid NOT NULL REFERENCES person(id),
   name TEXT NOT NULL
 );
 
-
--- person is an actor in the movie
-CREATE TABLE performance(
+CREATE TABLE starring(
   person_id uuid NOT NULL REFERENCES person(id),
-  movie_id uuid NOT NULL REFERENCES person(id)
+  movie_id uuid NOT NULL REFERENCES movie(id)
 );
 
 --------------------------------------------------------------------------------

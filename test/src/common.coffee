@@ -27,7 +27,7 @@ module.exports =
 
   mesa: mesa
     .setConnection (cb) -> pg.connect DATABASE_URL, cb
-    .debug (args...) -> console.log args[...3]...
+    # .debug (args...) -> console.log args[...3]...
 
   spy: (inner = ->) ->
     spy = (args...) ->
@@ -59,11 +59,11 @@ module.exports =
 
     resetDatabase = child_process.execAsync(DROP_DATABASE)
       .then (stdout) ->
-        console.log stdout
+        # console.log stdout
         console.log 'setUp', 'create database'
         child_process.execAsync(CREATE_DATABASE)
       .then (stdout) ->
-        console.log stdout
+        # console.log stdout
         stdout
 
     readSchema = fs.readFileAsync(

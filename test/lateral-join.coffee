@@ -37,7 +37,7 @@ module.exports =
           .group('user_id')
 
         joinQuery = mesa
-          .table({e1: innerQuery})
+          .from({e1: innerQuery})
           .join('LEFT JOIN LATERAL')
 
         lateralQuery = mesa
@@ -60,7 +60,7 @@ module.exports =
             'enter_credit_card'
             'enter_credit_card_time'
           ])
-          .table(joinQuery)
+          .from(joinQuery)
 
         console.log outerQuery.sql()
         console.log lateralQuery.sql()
