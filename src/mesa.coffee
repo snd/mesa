@@ -372,8 +372,11 @@ mesa =
               options.thisKey record
             else
               record[options.thisKey]
-          associated = grouped[thisValue]
-          record[options.as] = if options.many then associated else associated[0]
+          associated = grouped[thisValue] or []
+          if options.many
+            record[options.as] = associated
+          else if associated[0]
+            record[options.as] = associated[0]
         return records
 
   defaultsForEmbed: (otherTable, immutableOptions) ->
@@ -426,7 +429,7 @@ mesa =
     @queueEmbed otherTable, options
 
   # `primaryKey` in `this` table points to `foreignKey` in the `otherTable`
-  queueEmbedHasMany: (otherTable, options) ->
+  queueEmbedHasMany: (otherTable, immutableOptions) ->
     options = if immutableOptions then _.clone immutableOptions else {}
     options.many ?= true
     @queueEmbed otherTable, options
