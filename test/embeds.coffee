@@ -177,15 +177,42 @@ module.exports =
           test.equal movies[2].director.name, 'Dennis Hopper'
           test.done()
 
-#   'belongsTo':
-#
-#     'foo': (test) ->
-#
-# #   'hasMany': (test) ->
-# #     personTable
-# #       .queueEmbedHasMany(movieTable, {fk: 'director_id'})
-# #     test.done()
-# #
+    'hasMany': (test) ->
+      personTable
+        .queueEmbedHasMany(movieTable,
+          otherKey: 'writer_id'
+          as: 'written'
+        )
+        .queueEmbedHasMany(movieTable,
+          otherKey: 'director_id'
+          as: 'directed'
+        )
+        .find()
+        .then (people) ->
+          test.equal people[0].name, 'Dennis Hopper'
+          test.equal people[0].written.length, 1
+          test.equal people[0].written[0].name, 'Easy Rider'
+          test.equal people[0].directed.length, 1
+          test.equal people[0].directed[0].name, 'Easy Rider'
+
+          test.equal people[2].name, 'Michael Mann'
+          test.equal people[2].written.length, 1
+          test.equal people[2].written[0].name, 'Heat'
+          test.equal people[2].directed.length, 1
+          test.equal people[2].directed[0].name, 'Heat'
+
+          test.equal people[3].name, 'Tony Scott'
+          test.equal people[3].directed.length, 1
+          test.equal people[3].directed[0].name, 'True Romance'
+          test.equal people[3].written.length, 0
+
+          test.equal people[4].name, 'Quentin Tarantino'
+          test.equal people[4].written.length, 1
+          test.equal people[4].written[0].name, 'True Romance'
+          test.equal people[4].directed.length, 0
+
+          test.done()
+
 # #   'hasOneThrough': (test) ->
 # #     test.done()
 # #
