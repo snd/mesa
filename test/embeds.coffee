@@ -2,12 +2,17 @@ _ = require 'lodash'
 
 {setup, teardown, mesa} = require './src/common'
 
+# mesa = mesa.debug((args...) -> console.log args[...3]...)
+
 movieTable = mesa.table('movie')
 personTable = mesa.table('person')
 starringTable = mesa.table('starring')
 
 idWhereName = (array, name) ->
   _.find(array, {name: name}).id
+
+names = (array) ->
+  _.pluck array, 'name'
 
 module.exports =
   'unit':
@@ -160,7 +165,7 @@ module.exports =
 
     'tearDown': teardown
 
-    'belongsTo': (test) ->
+    'belongsTo: embed director in movie': (test) ->
       movieTable
         .queueEmbedBelongsTo(personTable,
           thisKey: 'director_id'
@@ -177,7 +182,7 @@ module.exports =
           test.equal movies[2].director.name, 'Dennis Hopper'
           test.done()
 
-    'hasMany': (test) ->
+    'hasMany: embed written and directed movies in person': (test) ->
       personTable
         .queueEmbedHasMany(movieTable,
           otherKey: 'writer_id'
@@ -190,28 +195,54 @@ module.exports =
         .find()
         .then (people) ->
           test.equal people[0].name, 'Dennis Hopper'
-          test.equal people[0].written.length, 1
-          test.equal people[0].written[0].name, 'Easy Rider'
-          test.equal people[0].directed.length, 1
-          test.equal people[0].directed[0].name, 'Easy Rider'
+          test.deepEqual names(people[0].written), ['Easy Rider']
+          test.deepEqual names(people[0].directed), ['Easy Rider']
 
           test.equal people[2].name, 'Michael Mann'
-          test.equal people[2].written.length, 1
-          test.equal people[2].written[0].name, 'Heat'
-          test.equal people[2].directed.length, 1
-          test.equal people[2].directed[0].name, 'Heat'
+          test.deepEqual names(people[2].written), ['Heat']
+          test.deepEqual names(people[2].directed), ['Heat']
 
           test.equal people[3].name, 'Tony Scott'
-          test.equal people[3].directed.length, 1
-          test.equal people[3].directed[0].name, 'True Romance'
-          test.equal people[3].written.length, 0
+          test.deepEqual names(people[3].written), []
+          test.deepEqual names(people[3].directed), ['True Romance']
 
           test.equal people[4].name, 'Quentin Tarantino'
-          test.equal people[4].written.length, 1
-          test.equal people[4].written[0].name, 'True Romance'
-          test.equal people[4].directed.length, 0
+          test.deepEqual names(people[4].written), ['True Romance']
+          test.deepEqual names(people[4].directed), []
 
           test.done()
+
+    'has many through: movies an actor has starred in': (test) ->
+      starringTableWithMovie = starringTable
+        .queueEmbedBelongsTo(movieTable)
+      personTable
+        .queueEmbedHasMany(starringTableWithMovie)
+        .queueAfterEach ((record) ->
+          record.movies = _.pluck record.starrings, 'movie'
+          delete record.starrings
+          return record
+        )
+        .find()
+        .then (people) ->
+          test.equal people[0].name, 'Dennis Hopper'
+          test.deepEqual names(people[0].movies), ['True Romance', 'Easy Rider']
+          test.equal people[1].name, 'Keanu Reeves'
+          test.deepEqual names(people[1].movies), []
+          test.equal people[2].name, 'Michael Mann'
+          test.deepEqual names(people[2].movies), []
+          test.equal people[3].name, 'Tony Scott'
+          test.deepEqual names(people[3].movies), []
+          test.equal people[4].name, 'Quentin Tarantino'
+          test.deepEqual names(people[4].movies), []
+          test.equal people[5].name, 'Robert De Niro'
+          test.deepEqual names(people[5].movies), ['Heat']
+          test.equal people[6].name, 'Al Pacino'
+          test.deepEqual names(people[6].movies), ['Heat']
+          test.equal people[7].name, 'Val Kilmer'
+          test.deepEqual names(people[7].movies), ['Heat', 'True Romance']
+
+          test.done()
+
 
 # #   'hasOneThrough': (test) ->
 # #     test.done()
