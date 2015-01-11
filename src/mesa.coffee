@@ -421,7 +421,7 @@ mesa =
   # `foreignKey` in `this` table points to `primaryKey` in the `otherTable`
   queueEmbedBelongsTo: (otherTable, immutableOptions) ->
     options = if immutableOptions then _.clone immutableOptions else {}
-    options.otherIsForeign ?= false
+    options.thisIsForeign ?= true
     @queueEmbed otherTable, options
 
   # `primaryKey` in `this` table points to `foreignKey` in the `otherTable`
