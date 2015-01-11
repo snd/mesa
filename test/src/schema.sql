@@ -10,6 +10,7 @@ CREATE TABLE person(
 
 CREATE TABLE movie(
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  year integer NOT NULL,
   director_id uuid NOT NULL REFERENCES person(id),
   writer_id uuid NOT NULL REFERENCES person(id),
   name TEXT NOT NULL

@@ -107,16 +107,19 @@ module.exports =
             movies = [
               {
                 name: 'Heat'
+                year: 1995
                 director_id: personId('Michael Mann')
                 writer_id: personId('Michael Mann')
               }
               {
                 name: 'True Romance'
+                year: 1993
                 director_id: personId('Tony Scott')
                 writer_id: personId('Quentin Tarantino')
               }
               {
                 name: 'Easy Rider'
+                year: 1969
                 director_id: personId('Dennis Hopper')
                 writer_id: personId('Dennis Hopper')
               }
@@ -216,11 +219,11 @@ module.exports =
     # order movies by year
     'hasOne: just return the first': (test) ->
       personTable
-        .queueEmbedHasOne(movieTable,
+        .queueEmbedHasOne(movieTable.order('year ASC'),
           otherKey: 'writer_id'
           as: 'firstWritten'
         )
-        .queueEmbedHasOne(movieTable,
+        .queueEmbedHasOne(movieTable.order('year ASC'),
           otherKey: 'director_id'
           as: 'firstDirected'
         )
