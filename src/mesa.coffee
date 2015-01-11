@@ -354,16 +354,20 @@ mesa =
 ################################################################################
 # embed
 
-  baseEmbed: (records, otherTable, options) ->
+  # TODO improve name
+  fetchAssociated: (records, otherTable, thisKey, otherKey) ->
     condition = {}
-    condition[options.otherKey] =
-      if 'function' is typeof options.thisKey
-        records.map options.thisKey
+    condition[otherKey] =
+      if 'function' is typeof thisKey
+        records.map thisKey
       else
-        _.pluck records, options.thisKey
+        _.pluck records, thisKey
     otherTable
       .where(condition)
       .find()
+
+  baseEmbed: (records, otherTable, options) ->
+    @fetchAssociated(records, otherTable, options.thisKey, options.otherKey)
       .then (otherRecords) ->
         grouped = _.groupBy otherRecords, options.otherKey
         records.forEach (record) ->
