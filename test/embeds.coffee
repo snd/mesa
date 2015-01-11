@@ -212,6 +212,38 @@ module.exports =
 
           test.done()
 
+    # TODO make this firstWritten
+    # order movies by year
+    'hasOne: just return the first': (test) ->
+      personTable
+        .queueEmbedHasOne(movieTable,
+          otherKey: 'writer_id'
+          as: 'firstWritten'
+        )
+        .queueEmbedHasOne(movieTable,
+          otherKey: 'director_id'
+          as: 'firstDirected'
+        )
+        .find()
+        .then (people) ->
+          test.equal people[0].name, 'Dennis Hopper'
+          test.equal people[0].firstWritten.name, 'Easy Rider'
+          test.equal people[0].firstDirected.name, 'Easy Rider'
+
+          test.equal people[2].name, 'Michael Mann'
+          test.equal people[2].firstWritten.name, 'Heat'
+          test.equal people[2].firstDirected.name, 'Heat'
+
+          test.equal people[3].name, 'Tony Scott'
+          test.ok not people[3].firstWritten?
+          test.equal people[3].firstDirected.name, 'True Romance'
+
+          test.equal people[4].name, 'Quentin Tarantino'
+          test.equal people[4].firstWritten.name, 'True Romance'
+          test.ok not people[4].firstDirected?
+
+          test.done()
+
     'has many through: movies an actor has starred in': (test) ->
       starringTableWithMovie = starringTable
         .queueEmbedBelongsTo(movieTable)
@@ -243,33 +275,15 @@ module.exports =
 
           test.done()
 
-
-# #   'hasOneThrough': (test) ->
-# #     test.done()
-# #
-# #   'hasManyThrough': (test) ->
-# #     movieTable
-# #       .queueEmbedHasMany(
-# #         table: personTable
-# #         through: performanceTable
-# #         as: 'actors'
-# #       )
-# #       .find()
-# #     personTable
-# #       .queueEmbedHasMany(movieTable, performanceTable,
-# #         as: 'starredIn'
-# #       )
-#       TODO the directors an actor had to do with
-# #       .find()
-# #     test.done()
+#   TODO the directors an actor had to do with
+#
+#   'nested': (test) ->
+#     test.done()
 #
 #   'hasOne fetch with join': (test) ->
 #     test.done()
 #
 #   'belongsTo fetch with join': (test) ->
-#     test.done()
-#
-#   'nested': (test) ->
 #     test.done()
 #
 #   'from subquery': (test) ->
