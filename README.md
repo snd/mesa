@@ -337,6 +337,8 @@ fetched after a find, first, delete and update.
 use one additional query to fetch all 
 and then associate them with the records
 
+order and conditions and limits on the other tables have their full effects
+
 ``` js
 commentTable
   .belongsTo({
@@ -738,16 +740,77 @@ your application will run out of connections and hang.
 
 ## TODO
 
-- real world test database
-  - movies
+- test isMesa
 
-- integration tests for embeds
+- link objects that have a `left` and `right` attribute as well as a pointsLeft/direction/leftToRight attribute
+
+- the last argument {many: true, as: ...} is just for embeds, not for fetches
+
+- make fetchOther work with an unlimited amount of tables
+  - recursive and just consumes things
+
+- there still needs to be a link to the original records?
+- in fact we just need one last 
+
+- how do you determine which of the resulting records to add to the original records ?
+  - we need to take the intermediary records into account
+  - results are merged
+
+this results in ONE query per table
+
+as allows you to capture results on the original table
+
+if first is true then only the first is added
+
+generalizes hasMany, belongsTo and hasOne
+
+by default the last table in the chain is embedded
+this is the purpose of include
+otherwise you could leave it out
+- just default to `as: true` for last object
+
+rename args... to rest...
+
+you can set as to true for intermediaries to embed them with auto naming
+
+on any insert, delete, update and select
+
+left can also be a function
+
+load associated data from other tables or subqueries
+
+forwards: false ????
+
+forward is from primary key to foreign key
+
+backwards only matters for the auto generation
+if you provide the keys explicitely it is ignored
+
+every table object in an include is a single query
+
+`as` is always the key to add on the results of the table include was called on
+first determines whether the first
+
+results are merged
+
+queries are run sequentially
+
+the mechanism is really dense
+
+- things more complicated than through dont make a lot of sense
+
+- or hasManyThrough which is a lot simpler
+
+- and between the tables there are optional configuration objects
+
+- add more movies and cast
+
+- more integration tests for embeds
 
 - fix mohair to make travis tests work
 
-- do not side effect function arguments (options)
+- chec that you do not side effect function arguments (options)
 - make sure that every function is exercised
-- test functions in more isolation !!!
 - expand active records integration test
 
 - unit test that escape works with schemas
@@ -842,3 +905,6 @@ hooks play super nice with promises
 
 
 order(foo: ‘desc’) (is a mohair thing)
+
+mesa is a moving target.
+we are using it in production and it grows with the challenges it helps us solve.

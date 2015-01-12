@@ -14,72 +14,204 @@ idWhereName = (array, name) ->
 names = (array) ->
   _.pluck array, 'name'
 
+{normalizeLink, normalizeIncludeArguments} = mesa.helpers
+
 module.exports =
+
   'unit':
 
-    'defaultsForEmbed':
+    'normalizeLink':
 
-      'full options are passed through and cloned': (test) ->
-        options =
-          thisKey: 'user_id'
-          otherKey: 'id'
-          thisIsForeign: true
-          many: true
-          as: 'comments'
-        optionsWithDefaults = mesa.defaultsForEmbed mesa, options
-        test.ok not (options is optionsWithDefaults)
-        test.deepEqual options, optionsWithDefaults
-
+      'original link is not modified': (test) ->
+        link = {}
+        actual = normalizeLink movieTable, personTable, {}
+        test.notEqual link, actual
         test.done()
 
-    'has one': (test) ->
-        options =
-          thisKey: 'id'
-          otherKey: 'user_id'
-          thisIsForeign: false
-          many: false
-          as: 'profile'
-        userTable = mesa.table('user')
-        profileTable = mesa.table('profile')
-        test.deepEqual options, userTable.defaultsForEmbed profileTable
+      'no autocomplete': (test) ->
+        complete =
+          left: 'left'
+          right: 'right'
+          forward: 'forward'
+          first: 'first'
+          as: 'as'
+        actual = normalizeLink movieTable, personTable, complete
+        test.deepEqual _.clone(complete), actual
         test.done()
 
-    'has one with custom primary keys': (test) ->
-        options =
-          thisKey: 'uid'
-          otherKey: 'user_uid'
-          thisIsForeign: false
-          many: false
-          as: 'profile'
-        userTable = mesa.table('user').primaryKey 'uid'
-        profileTable = mesa.table('profile').primaryKey 'pid'
-        test.deepEqual options, userTable.defaultsForEmbed profileTable
+      'autocomplete (full)': (test) ->
+        expected =
+          left: 'id'
+          right: 'movie_id'
+          forward: true
+          first: false
+        actual = normalizeLink movieTable, personTable
+        test.deepEqual expected, actual
         test.done()
 
-    'has many': (test) ->
-        options =
-          thisKey: 'id'
-          otherKey: 'user_id'
-          thisIsForeign: false
-          many: true
-          as: 'profiles'
-        userTable = mesa.table('user')
-        profileTable = mesa.table('profile')
-        test.deepEqual options, userTable.defaultsForEmbed profileTable,
-          many: true
+      'autocomplete with custom primary keys': (test) ->
+        expected =
+          left: 'foo'
+          right: 'movie_foo'
+          forward: true
+          first: false
+        actual = normalizeLink(
+          movieTable.primaryKey('foo')
+          personTable.primaryKey('bar')
+        )
+        test.deepEqual expected, actual
         test.done()
 
-    'belongs to': (test) ->
-        options =
-          thisKey: 'profile_id'
-          otherKey: 'id'
-          thisIsForeign: true
-          many: false
-          as: 'profile'
-        userTable = mesa.table('user')
-        profileTable = mesa.table('profile')
-        test.deepEqual options, userTable.defaultsForEmbed profileTable,
-          thisIsForeign: true
+      'autocomplete {forward: false}': (test) ->
+        expected =
+          left: 'person_id'
+          right: 'id'
+          forward: false
+          first: false
+        actual = normalizeLink movieTable, personTable,
+          forward: false
+        test.deepEqual expected, actual
+        test.done()
+
+      'autocomplete {forward: false} with custom primary keys': (test) ->
+        expected =
+          left: 'person_bar'
+          right: 'bar'
+          forward: false
+          first: false
+        actual = normalizeLink(
+          movieTable.primaryKey('foo'),
+          personTable.primaryKey('bar'),
+          {forward: false}
+        )
+        test.deepEqual expected, actual
+        test.done()
+
+      'autocomplete {as: true}': (test) ->
+        expected =
+          left: 'id'
+          right: 'movie_id'
+          forward: true
+          first: false
+          as: 'persons'
+        actual = normalizeLink movieTable, personTable,
+          as: true
+        test.deepEqual expected, actual
+        test.done()
+
+      'autocomplete {as: true, first: true}': (test) ->
+        expected =
+          left: 'id'
+          right: 'movie_id'
+          forward: true
+          first: true
+          as: 'person'
+        actual = normalizeLink movieTable, personTable,
+          as: true
+          first: true
+        test.deepEqual expected, actual
+        test.done()
+
+    'normalizeIncludeArguments':
+
+      'zero arguments': (test) ->
+        actual = normalizeIncludeArguments()
+        test.deepEqual actual, []
+        test.done()
+
+      # TODO throw an error in the future
+      'single table is ignored': (test) ->
+        actual = normalizeIncludeArguments movieTable
+        test.deepEqual actual, []
+        test.done()
+
+      'two tables': (test) ->
+        actual = normalizeIncludeArguments movieTable, starringTable
+        test.deepEqual actual, [{
+          left: 'id'
+          right: 'movie_id'
+          forward: true
+          first: false
+          as: 'starrings'
+          table: starringTable
+        }]
+        test.done()
+
+      'two tables with empty link': (test) ->
+        actual = normalizeIncludeArguments(
+          movieTable
+          {}
+          starringTable
+        )
+        test.deepEqual actual, [{
+          left: 'id'
+          right: 'movie_id'
+          forward: true
+          first: false
+          as: 'starrings'
+          table: starringTable
+        }]
+        test.done()
+
+      'two tables with {forward: false}': (test) ->
+        actual = normalizeIncludeArguments(
+          movieTable
+          {as: 'cast', forward: false}
+          starringTable
+        )
+        test.deepEqual actual, [{
+          left: 'starring_id'
+          right: 'id'
+          forward: false
+          first: false
+          as: 'cast'
+          table: starringTable
+        }]
+        test.done()
+
+      'three tables': (test) ->
+        actual = normalizeIncludeArguments(
+          movieTable
+          starringTable
+          personTable
+        )
+        test.deepEqual actual, [{
+          left: 'id'
+          right: 'movie_id'
+          forward: true
+          first: false
+          table: starringTable
+        }, {
+          left: 'id'
+          right: 'starring_id'
+          forward: true
+          first: false
+          as: 'persons'
+          table: personTable
+        }]
+        test.done()
+
+      'three tables with {forward: false}': (test) ->
+        actual = normalizeIncludeArguments(
+          movieTable
+          starringTable
+          {forward: false, as: 'cast'}
+          personTable
+        )
+        test.deepEqual actual, [{
+          left: 'id'
+          right: 'movie_id'
+          forward: true
+          first: false
+          table: starringTable
+        }, {
+          left: 'person_id'
+          right: 'id'
+          forward: false
+          first: false
+          as: 'cast'
+          table: personTable
+        }]
         test.done()
 
   'integration':
@@ -143,11 +275,11 @@ module.exports =
                     person_id: personId('Al Pacino')
                   }
                   {
-                    movie_id: movieId('Heat')
+                    movie_id: movieId('True Romance')
                     person_id: personId('Val Kilmer')
                   }
                   {
-                    movie_id: movieId('True Romance')
+                    movie_id: movieId('Heat')
                     person_id: personId('Val Kilmer')
                   }
                   {
@@ -170,10 +302,9 @@ module.exports =
 
     'belongsTo: embed director in movie': (test) ->
       movieTable
-        .queueEmbedBelongsTo(personTable,
-          thisKey: 'director_id'
-          otherKey: 'id'
-          as: 'director'
+        .include(
+          {forward: false, left: 'director_id', first: true, as: 'director'}
+          personTable
         )
         .find()
         .then (movies) ->
@@ -187,14 +318,8 @@ module.exports =
 
     'hasMany: embed written and directed movies in person': (test) ->
       personTable
-        .queueEmbedHasMany(movieTable,
-          otherKey: 'writer_id'
-          as: 'written'
-        )
-        .queueEmbedHasMany(movieTable,
-          otherKey: 'director_id'
-          as: 'directed'
-        )
+        .include({right: 'writer_id', as: 'written'}, movieTable)
+        .include({right: 'director_id', as: 'directed'}, movieTable)
         .find()
         .then (people) ->
           test.equal people[0].name, 'Dennis Hopper'
@@ -215,17 +340,15 @@ module.exports =
 
           test.done()
 
-    # TODO make this firstWritten
-    # order movies by year
-    'hasOne: just return the first': (test) ->
+    'hasOne: embed first written and first directed': (test) ->
       personTable
-        .queueEmbedHasOne(movieTable.order('year ASC'),
-          otherKey: 'writer_id'
-          as: 'firstWritten'
+        .include(
+          {right: 'writer_id', first: true, as: 'firstWritten'}
+          movieTable.order('year ASC')
         )
-        .queueEmbedHasOne(movieTable.order('year ASC'),
-          otherKey: 'director_id'
-          as: 'firstDirected'
+        .include(
+          {right: 'director_id', first: true, as: 'firstDirected'}
+          movieTable.order('year ASC'),
         )
         .find()
         .then (people) ->
@@ -248,14 +371,12 @@ module.exports =
           test.done()
 
     'has many through: movies an actor has starred in': (test) ->
-      starringTableWithMovie = starringTable
-        .queueEmbedBelongsTo(movieTable)
       personTable
-        .queueEmbedHasMany(starringTableWithMovie)
-        .queueAfterEach ((record) ->
-          record.movies = _.pluck record.starrings, 'movie'
-          delete record.starrings
-          return record
+        .include(
+          {as: 'starring'}
+          starringTable
+          {forward: false}
+          movieTable
         )
         .find()
         .then (people) ->
@@ -274,14 +395,72 @@ module.exports =
           test.equal people[6].name, 'Al Pacino'
           test.deepEqual names(people[6].movies), ['Heat']
           test.equal people[7].name, 'Val Kilmer'
-          test.deepEqual names(people[7].movies), ['Heat', 'True Romance']
+          test.deepEqual names(people[7].movies), ['True Romance', 'Heat']
 
           test.done()
 
-#   TODO the directors an actor had to do with
+    'the directors an actor has worked with': (test) ->
+      # TODO test with some actors that have worked with a director multiple
+      # times
+      personTable
+        .include(
+          starringTable
+          {forward: false}
+          movieTable
+          {forward: false, left: 'director_id', as: 'directors'}
+          personTable
+        )
+        .find()
+        .then (people) ->
+          test.equal people[0].name, 'Dennis Hopper'
+          test.deepEqual names(people[0].directors), ['Tony Scott', 'Dennis Hopper']
+          test.equal people[1].name, 'Keanu Reeves'
+          test.deepEqual names(people[1].directors), []
+          test.equal people[2].name, 'Michael Mann'
+          test.deepEqual names(people[2].directors), []
+          test.equal people[3].name, 'Tony Scott'
+          test.deepEqual names(people[3].directors), []
+          test.equal people[4].name, 'Quentin Tarantino'
+          test.deepEqual names(people[4].directors), []
+          test.equal people[5].name, 'Robert De Niro'
+          test.deepEqual names(people[5].directors), ['Michael Mann']
+          test.equal people[6].name, 'Al Pacino'
+          test.deepEqual names(people[6].directors), ['Michael Mann']
+          test.equal people[7].name, 'Val Kilmer'
+          test.deepEqual names(people[7].directors), ['Tony Scott', 'Michael Mann']
+          test.done()
+
+#     'nested: fetch all actors with all their movies and director and actors for every movie': (test) ->
+#       starringPeople = personTable
+#         .distinct('id')
+#         .join('JOIN starring ON person.id = starring.person_id')
 #
-#   'nested': (test) ->
-#     test.done()
+#       starringPeople
+#         .include(
+#           starringTable
+#           {forward: false}
+#           movieTable
+#             .include(
+#               {forward: false, left: 'director_id', first: true, as: 'director'}
+#               personTable
+#             )
+#             .include(
+#               starringTable
+#               {forward: false, as: 'actors'}
+#               personTable
+#             )
+#         )
+#         .find()
+#         .then (actors) ->
+#           console.log actors
+#           test.done()
+#
+
+# TODO include some things along the way
+
+# TODO has many through with join
+
+#   TODO the directors an actor had to do with
 #
 #   'hasOne fetch with join': (test) ->
 #     test.done()

@@ -26,6 +26,78 @@ helpers.replacePlaceholders = (sql) ->
 helpers.ignoredArgumentWarning = (receiver) ->
   "you called #{receiver} with an argument but #{receiver} ignores all arguments. #{receiver} returns a promise and maybe you wanted to call that promise instead: #{receiver}.then(function(result) { ... })"
 
+helpers.normalizeLink = (leftTable, rightTable, immutableLink) ->
+  leftTableName = leftTable.getTable()
+  rightTableName = rightTable.getTable()
+
+  link = if immutableLink? then _.clone immutableLink else {}
+
+  link.forward ?= true
+  link.first ?= false
+
+  unless link.left?
+    if link.forward
+      # primary key
+      link.left = leftTable.getPrimaryKey()
+    else
+      # foreign key
+      unless rightTableName?
+        # TODO fix error message
+        throw new Error 'default for embed option `thisKey` requires call to .table(name) on this table'
+      link.left = rightTableName + '_' + rightTable.getPrimaryKey()
+
+  unless link.right?
+    if link.forward
+      # foreign key
+      unless leftTableName?
+        # TODO fix error message
+        throw new Error 'default for embed option `otherKey` requires call to .table(name) on other table'
+      link.right = leftTableName + '_' + leftTable.getPrimaryKey()
+    else
+      # primary key
+      link.right = rightTable.getPrimaryKey()
+
+  if link.as is true
+    unless rightTableName?
+      # TODO fix error message
+      throw new Error 'default for embed option `as` requires call to .table(name) on other table'
+    link.as = rightTableName
+    unless link.first
+      link.as += 's'
+
+  return link
+
+# returns a list of tables with complete links between them
+# TODO error handling for malformed argument lists
+helpers.normalizeIncludeArguments = (args...) ->
+  # some state that will be modified by the loop below
+  normalized = []
+  leftTable = null
+  link = null
+
+  lastIndex = args.length - 1
+
+  args.forEach (arg, index) ->
+    if helpers.isMesa arg
+      if leftTable?
+        # last results are always included
+        link = if link? then _.clone(link) else {}
+        if index is lastIndex
+          link.as ?= true
+        rightTable = arg
+        link = helpers.normalizeLink leftTable, rightTable, link
+        link.table = rightTable
+        normalized.push link
+        # dont use the link again
+        link = null
+
+      # in any case set the next leftTable
+      leftTable = arg
+    else
+      link = arg
+
+  return normalized
+
 ################################################################################
 # core
 
@@ -354,95 +426,68 @@ mesa =
 ################################################################################
 # embed
 
-  # TODO improve name
-  # TODO possibly take an options object
-  findOther: (records, otherTable, thisKey, otherKey) ->
-    condition = {}
-    condition[otherKey] =
-      if 'function' is typeof thisKey
-        records.map thisKey
-      else
-        _.pluck records, thisKey
-    otherTable
-      .where(condition)
-      .find()
+  # TODO REFACTOR this function works and is well tested
+  # but a bit of a complicated mess of side effects and promises
+  baseEmbed: (originalRecords, includes) ->
+    # regardless of how we branch off we keep them in buckets
+    # buckets always contains the records of the last layer
+    # that are connected to the records in the starting table
+    groupedByFirst = null
+    prevRecords = originalRecords
 
-  baseEmbed: (records, otherTable, options) ->
-    @findOther(records, otherTable, options.thisKey, options.otherKey)
-      .then (otherRecords) ->
-        grouped = _.groupBy otherRecords, options.otherKey
-        records.forEach (record) ->
-          thisValue =
-            if 'function' is typeof options.thisKey
-              options.thisKey record
-            else
-              record[options.thisKey]
-          associated = grouped[thisValue] or []
-          if options.many
-            record[options.as] = associated
-          else if associated[0]?
-            record[options.as] = associated[0]
-        return records
+    reducer = (soFar, include) ->
+      # run in series
+      # wait for previous include steps to continue
+      soFar.then ->
+        condition = {}
+        condition[include.right] = _.pluck prevRecords, include.left
 
-  defaultsForEmbed: (otherTable, immutableOptions) ->
-    thisTableName = @getTable()
-    otherTableName = otherTable.getTable()
+        include.table
+          .where(condition)
+          .find()
+          .then (nextRecords) ->
+            groupedByCurrent = _.groupBy nextRecords, include.right
 
-    options = if immutableOptions? then _.clone immutableOptions else {}
+            groupedByFirst =
+              unless groupedByFirst?
+                groupedByCurrent
+              else
+                _.mapValues groupedByFirst, (records) ->
+                  # forward bucket to the next layer
+                  # by replacing records by the records they are
+                  # associated with
+                  _.reduce records, ((acc, record) ->
+                    records = groupedByCurrent[record[include.left]]
+                    if records? then acc.concat records else acc
+                  ), []
 
-    options.thisIsForeign ?= false
+            if include.as?
+              # embed this layer (currently in buckets) into the original records
+              originalRecords.forEach (record) ->
+                group = groupedByFirst[record[includes[0].left]] or []
+                if include.first
+                  if group[0]?
+                    record[include.as] = group[0]
+                else
+                  record[include.as] = group
+            prevRecords = nextRecords
 
-    unless options.thisKey?
-      if options.thisIsForeign
-        unless thisTableName?
-          throw new Error 'default for embed option `thisKey` requires call to .table(name) on this table'
-        options.thisKey = otherTableName + '_' + otherTable.getPrimaryKey()
-      else
-        options.thisKey = @getPrimaryKey()
+    # run include steps in series
+    includes.reduce(reducer, Promise.resolve()).then ->
+      # finally return the original records
+      originalRecords
 
-    unless options.otherKey?
-      if options.thisIsForeign
-        options.otherKey = otherTable.getPrimaryKey()
-      else
-        unless otherTableName?
-          throw new Error 'default for embed option `otherKey` requires call to .table(name) on other table'
-        options.otherKey = thisTableName + '_' + @getPrimaryKey()
+  embed: (records, args...) ->
+    @baseEmbed records, helpers.normalizeIncludeArguments @, args...
 
-    options.many ?= false
-
-    unless options.as?
-      unless otherTableName?
-        throw new Error 'default for embed option `as` requires call to .table(name) on other table'
-      options.as = if options.many then otherTableName + 's' else otherTableName
-
-    return options
-
-  embed: (records, otherTable, options) ->
-    @baseEmbed records, otherTable, @defaultsForEmbed otherTable, options
-
-  queueEmbed: (otherTable, options) ->
-    @queueAfter _.partialRight @embed, otherTable, options
-
-  # `foreignKey` in `this` table points to `primaryKey` in the `otherTable`
-  queueEmbedBelongsTo: (otherTable, immutableOptions) ->
-    options = if immutableOptions then _.clone immutableOptions else {}
-    options.thisIsForeign ?= true
-    @queueEmbed otherTable, options
-
-  # `primaryKey` in `this` table points to `foreignKey` in the `otherTable`
-  queueEmbedHasOne: (otherTable, options) ->
-    @queueEmbed otherTable, options
-
-  # `primaryKey` in `this` table points to `foreignKey` in the `otherTable`
-  queueEmbedHasMany: (otherTable, immutableOptions) ->
-    options = if immutableOptions then _.clone immutableOptions else {}
-    options.many ?= true
-    @queueEmbed otherTable, options
+  include: (args...) ->
+    @queueAfter _.partialRight @embed, args...
 
 ################################################################################
 # automatic construction of setters and properties for queue:
 # (automating this prevents copy & paste errors)
 
+# TODO better name
 payload = (f, args...) ->
   if args.length is 0 then f else _.partialRight f, args...
 
@@ -492,6 +537,9 @@ mesa.queueAfterEach = (args...) ->
 
 ################################################################################
 # exports
+
+mesa.isMesa = helpers.isMesa = (object) ->
+  mesa.isPrototypeOf object
 
 module.exports = mesa
   # enable mass assignment protection
