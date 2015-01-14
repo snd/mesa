@@ -141,10 +141,7 @@ mesaBaseProperties =
     return result
 
   when: (condition, fn, args...) ->
-    if condition
-      @call fn, args...
-    else
-      @
+    if condition then @call fn, args... else @
 
   each: (arrayOrObject, fn, args...) ->
     callback = (that, value, indexOrKey) ->
