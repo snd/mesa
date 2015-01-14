@@ -142,10 +142,7 @@ mesaBaseProperties =
 
   when: (condition, fn, args...) ->
     if condition
-      result = fn.apply @, args
-      unless helpers.isMesa result
-        throw new Error 'the function passed to .if() must return a mesa-object'
-      return result
+      @call fn, args...
     else
       @
 
