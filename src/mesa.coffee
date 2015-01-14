@@ -133,16 +133,28 @@ mesaBaseProperties =
     next[key] = value
     return next
 
+  # call a one-off function as if it were part of mesa
+  call: (f, args...) ->
+    result = f.apply @, args
+    unless helpers.isMesa result
+      throw new Error 'the function passed to .call() must return a mesa-object'
+    return result
+
+  when: (condition, fn, args...) ->
+    if condition
+      result = fn.apply @, args
+      unless helpers.isMesa result
+        throw new Error 'the function passed to .if() must return a mesa-object'
+      return result
+    else
+      @
+
   _returnFirst: false
   returnFirst: (arg = true) ->
     @fluent '_returnFirst', arg
 
   debug: (arg) ->
     @fluent '_debug', arg
-
-  # call a one-off function as if it were part of mesa
-  call: (f, args...) ->
-    f.apply @, args
 
 ################################################################################
 # mass assignment protection
