@@ -149,6 +149,14 @@ mesaBaseProperties =
     else
       @
 
+  each: (arrayOrObject, fn, args...) ->
+    callback = (that, value, indexOrKey) ->
+      result = fn.call that, value, indexOrKey, args...
+      unless helpers.isMesa result
+        throw new Error 'the function passed to .each() must return a mesa-object'
+      result
+    _.reduce arrayOrObject, callback, this
+
   _returnFirst: false
   returnFirst: (arg = true) ->
     @fluent '_returnFirst', arg

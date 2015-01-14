@@ -102,7 +102,20 @@ module.exports =
 
     test.done()
 
-  # TODO test .each
+  '.each() with empty array': (test) ->
+    query = mesa.each [], ->
+      test.ok false
+    test.equal query, mesa
+    test.done()
+
+  '.each() with object': (test) ->
+    query = mesa.each {a: 1, b: 2, c: 3}, (value, key) ->
+      condition = {}
+      condition[key] = value
+      @where condition
+    test.equal query.sql(), 'SELECT * WHERE ("a" = ?) AND ("b" = ?) AND ("c" = ?)'
+    test.deepEqual query.params(), [1, 2, 3]
+    test.done()
 
   'getTable': (test) ->
     test.equal 'user', mesa.table('user').getTable()
