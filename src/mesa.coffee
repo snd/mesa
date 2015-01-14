@@ -101,15 +101,21 @@ helpers.normalizeIncludeArguments = (args...) ->
 ################################################################################
 # core
 
-mesa =
+mesaBase =
 
   # the magic behind mohair's fluent interface:
   # prototypically inherit from `this` and set `key` to `value`
 
+  clone: ->
+    clone = Object.create mesaBase
+    for own k, v of this
+      clone[k] = v
+    return clone
+
   fluent: (key, value) ->
-    object = Object.create @
-    object[key] = value
-    return object
+    next = @clone()
+    next[key] = value
+    return next
 
   _returnFirst: false
   returnFirst: (arg = true) ->
@@ -507,9 +513,9 @@ setQueueProperties = (object, suffix) ->
 # queueBeforeInsert, queueBeforeEachInsert
 # queueBeforeEachUpdate (just that because the update is a single object/record)
 
-setQueueProperties(mesa, 'BeforeInsert')
-setQueueProperties(mesa, 'BeforeEachInsert')
-setQueueProperties(mesa, 'BeforeEachUpdate')
+setQueueProperties(mesaBase, 'BeforeInsert')
+setQueueProperties(mesaBase, 'BeforeEachInsert')
+setQueueProperties(mesaBase, 'BeforeEachUpdate')
 
 # queueAfterSelect, queueAfterEachSelect
 # queueAfterInsert, queueAfterEachInsert
@@ -517,25 +523,25 @@ setQueueProperties(mesa, 'BeforeEachUpdate')
 # queueAfterDelete, queueAfterEachDelete
 
 for phase in ['Select', 'Insert', 'Update', 'Delete']
-  setQueueProperties(mesa, 'After' + phase)
-  setQueueProperties(mesa, 'AfterEach' + phase)
+  setQueueProperties(mesaBase, 'After' + phase)
+  setQueueProperties(mesaBase, 'AfterEach' + phase)
 
-mesa.queueBeforeEach = (args...) ->
-  object = Object.create @
+mesaBase.queueBeforeEach = (args...) ->
+  object = @clone()
   ['Insert', 'Update'].forEach (phase) ->
     propertyName = '_queueBeforeEach' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
-mesa.queueAfter = (args...) ->
-  object = Object.create @
+mesaBase.queueAfter = (args...) ->
+  object = @clone()
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfter' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
-mesa.queueAfterEach = (args...) ->
-  object = Object.create @
+mesaBase.queueAfterEach = (args...) ->
+  object = @clone()
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfterEach' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
@@ -544,11 +550,20 @@ mesa.queueAfterEach = (args...) ->
 ################################################################################
 # exports
 
-mesa.isMesa = helpers.isMesa = (object) ->
-  mesa.isPrototypeOf object
+mesaBase.isMesa = helpers.isMesa = (object) ->
+  mesaBase.isPrototypeOf object
+
+mesaBase.helpers = helpers
+
+# put mesaBase one step away from the exported object in the prototype chain
+# such that mesa.clone() does not copy the mesaBase properties.
+# mesa.clone() just copies OWN properties.
+# user-added methods are OWN properties and get copied.
+# this keeps the copies small which is nice for performance (memory and cpu)
+# and makes inspecting the `this` objects more pleasant as they
+# only contain relevant state.
+mesa = Object.create mesaBase
 
 module.exports = mesa
   # enable mass assignment protection
   .queueBeforeEach(mesa.pickAllowed)
-
-module.exports.helpers = helpers
