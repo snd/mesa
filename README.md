@@ -7,126 +7,261 @@
 > simply elegant sql for nodejs:
 build and execute queries, manage connections
 
-**this documentation targets the upcoming `1.0.0` release of mesa,
-currently in alpha and available on npm as [`mesa@1.0.0-alpha.11`](https://www.npmjs.org/package/mesa)**
 
-**this documentation is a work in progress**
+mesa is an immensely useful and pragmatic
 
-- [in a nutshell](#in-a-nutshell)
-- [principles](#principles)
-- [functional programming](#functional-programming)
-- [mohair](#mohair)
-- [criterion](#criterion)
-- [connections](#connections)
-- [handling data](#handling-data)
-- [embedding associated data](#embedding-associated-data)
+as simple as possible.
 
-## in a nutshell (or quick tour)
+**this documentation targets the upcoming `mesa@1.0.0` release
+currently in alpha and available on npm as `mesa@1.0.0-alpha.*`.**
+**it's already used in production, is extremely useful, well tested
+and quite stable !**
+**this documentation does not yet represent everything that is possible with mesa.**
+**`mesa@1.0.0` will be released WHEN IT'S DONE !**
 
-install
+[click here for documentation and code of `mesa@0.7.1` which will see no further development.](https://github.com/snd/mesa/tree/0.7.1)
+
+## introduction
+
+install latest:
 
 ```
-npm install --save mesa@1.0.0-alpha.10
+npm install --save mesa
 ```
 
-mesa needs [node-postgres](https://github.com/brianc/node-postgres)
+mesa needs [node-postgres](https://github.com/brianc/node-postgres):
 
 ```
 npm install --save pg
 ```
 
-tell mesa how to get a connection from [node-postgres](https://github.com/brianc/node-postgres)
+require both:
 
 ``` js
 var mesa = require('mesa');
 var pg = require('pg');
-
-var connectedMesa = mesa.setConnection(function(cb) {
-  pg.connect('postgres://localhost/your-database', cb);
-});
 ```
 
-mesa is configured through a
-[fluent](http://en.wikipedia.org/wiki/Fluent_interface) (chainable) API.
+## connections
+
+let's tell mesa how to get a database connection for a query:
 
 ``` js
-var movieTable = connectedMesa.table('movie');
+var database = mesa
+  .setConnection(function(cb) {
+    pg.connect('postgres://localhost/your-database', cb);
+  });
 ```
 
-select
+a call to `setConnection` is the only thing tying the `database` mesa-object
+to the node-postgres library and to the specific database.
 
+## core ideas and configuration
 
-
-
-
-functional style: pure functions, no data mutation:
-simple, reusable, composable !
+calling `setConnection(callbackOrConnection)` has returned a new object.
+the original `mesa` object is not modified:
 
 ``` js
-var cancelledFlights = flightTable
-  .where({is_cancelled: true})
-
-var lastCancelledFlights = cancelledFlights
-  .order({cancelled_at: 'DESC'})
-  .limit(100);
-
-cancelledFlights.sql();
-// -> 'SELECT * FROM "flight" where "is_cancelled" = ? ORDER BY "cancelled_at" DESC LIMIT ?'
-cancelledFlights.params();
-// -> [true, 100]
+assert(database !== mesa);
 ```
 
-subqueries
+**mesa embraces functional programming:
+no method call on a mesa-object modifies that object.
+mesa configuration methods are [pure](https://en.wikipedia.org/wiki/Pure_function):
+they create a new mesa-object that prototypically inherits from the one before it,
+set some property on the new object and return the new object.**
 
+let's configure some tables:
+
+``` js
+var movieTable = database.table('movie');
+
+var personTable = database.table('person');
+```
+
+there are no special database-objects, table-objects or query-objects in mesa.
+only mesa-objects that all have the same methods.
+order of configuration method calls does not matter.
+you can change everything at any time:
+
+``` js
+var personTableInOtherDatabase = personTable
+  .setConnection(function(cb) {
+    pg.connect('postgres://localhost/your-other-database', cb);
+  });
+```
+
+from the above properties follows that **method calls on mesa-objects can be chained !**.
+
+``` js
+var rRatedMoviesOfThe2000s = movieTable
+  // `where` accepts raw sql + optional parameter bindings
+  .where('year BETWEEN ? AND ?', 2000, 2009)
+  // repeated calls to where are 'anded' together
+  // `where` accepts objects that describe conditions
+  .where({rating: 'R'});
+```
+
+the `.where()` and `.having()` methods take **exactly** the same
+arguments as criterion...
+
+we can always get the SQL and parameter bindings of a mesa-object:
+
+``` js
+rRatedMoviesOfThe2000s.sql();
+// -> 'SELECT * FROM "movie" WHERE (year BETWEEN ? AND ?) AND (rating = ?)'
+rRatedMoviesOfThe2000s.params();
+// -> [2000, 2009, 'R']
+```
+
+we can refine 
+mesa builds on top of mohair
+consult mohair 
+
+``` js
+var top10GrossingRRatedMoviesOfThe2000s = rRatedMoviesOfThe2000s
+  .order('box_office_gross_total DESC')
+  .limit(10);
+```
+
+**mesa embraces prototypical inheritance:
+because every mesa-object prototypically inherits from the one before it
+a method added to a mesa-object
+is available on all mesa-objects down the chain - this is huge ! :**
+
+``` js
+movieTable.inYearRange = function(from, to) {
+  return this
+    .where('year BETWEEN ? AND ?', from to);
+};
+
+movieTable.page = function(page, perPage) {
+  perPage = perPage ? perPage : 10;
+  return this
+    .limit(perPage)
+    .offset(page * perPage);
+};
+
+var top3GrossingPG13RatedMoviesOfThe90s = movieTable
+  // we can freely chain and mix build-in and custom methods !
+  .order('box_office_gross_total DESC')
+  .page(2)
+  .where({rating: 'PG13'})
+  .whereInYearRange(1990, 1999);
+```
+
+**we see how pure functions and immutability lead to simplicity, reusability
+and [composability](#composability) !**
+
+## select queries
+
+we can run a select query on a mesa object and return all results:
+
+``` js
+top10GrossingRRatedMoviesOfThe2000s
+  // run a select query and return all results
+  .find()
+  // running a query always returns a promise
+  .then(function(top10Movies) {
+  });
+```
+
+**running a query always returns a promise !**
+
+we can run a select query on a mesa object and return only the first result:
+
+``` js
+top10GrossingRRatedMoviesOfThe2000s
+  // run a select query and return only the first result
+  // `first` automatically calls `.limit(1)` to be as efficient as possible
+  .first()
+  // running a query always returns a promise
+  .then(function(topMovie) {
+
+  });
+```
+
+we can also simply check whether a record exists:
+
+``` js
+movieTable
+  .where({name: 'Moon'})
+  .exists()
+  // running a query always returns a promise
+  .then(function(exists) {
+
+  });
+```
+
+## insert queries
+
+we can run an insert query on a mesa object:
+
+``` js
+movieTable
+  // whitelist some properties to prevent mass assignment
+  .allow('name')
+  .insert({name: 'Moon'})
+  // running a query always returns a promise
+  // if insert is called with a single object only the first inserted object is returned
+  .then(function(insertedMovie) {
+  })
+```
+
+before running insert queries
+
+if you have control over the properties of the inserted objects
+and can ensure that no properties
+can disable this by calling `.unsafe()`.
+you can reenable it by calling `.unsafe(false)`.
+
+you can insert multiple records by massing multiple arguments and/or arrays
+to insert:
+
+``` js
+movieTable
+  // disable mass-assignment protection
+  .unsafe()
+  // running a query always returns a promise
+  .insert(
+    {name: ''}
+    [
+      {name: ''}
+      {name: ''}
+    ]
+    {name: ''}
+  )
+  .then(function(insertedMovies) {
+  })
+```
+
+## update queries
+
+## delete queries
+
+## connections revisited
+
+## queueing
+
+## including
+
+## connections revisited
+
+``` js
+```
+
+`setConnection` either accepts
+
+`wrapInConnection`
 
 all of sql
 
 down to the metal
 
-
-promises
-
-powerful 
-
-``` js
-var cancelledFlightsPromise = cancelledFlights.find();
-
-cancelledFlightsPromise.then(function(flights) {
-  // ...
-});
-
-flightTable
-  .allow('
-  .insert({
-
-  })
-  .then(function(inserted) {
-    // ...
-  });
-```
-
-## configuration
-
-global configuration
-table configuration
-chain configuration (association chain) TODO better name
-query configuration
-
-lets call this an instance.
-
-refining
-
-
-
-repeated calls: merge or overwrite
-
-
 ## debugging
 
-> debug lets you see inside mesa's operations
-
 ``` js
-mesa.debug(function( , detail, state, verboseState, instance) 
+mesaWithDebug = mesa.debug(function( , detail, state, verboseState, instance)
 ```
 
 only on refined versions
@@ -162,12 +297,6 @@ here is a quick overview:
 look into the source to see exactly which 
 
 
-## extending
-
-paginate
-
-
-extending for associations
 
 ## queueing
 
@@ -239,75 +368,6 @@ here is how you would use mesa to implement it
 as the foundation
 as the building blocks
 
-``` js
-var _ = require('lodash');
-
-// constructor
-
-var Table = function() {
-};
-
-Table.prototype =
-  save: function() {
-    if (this.id) {
-      userTable.where({id: this.id})
-      .returnFirst()
-      .update(this)
-      .then (data)
-        _.assign(this, data);
-    } else {
-      _.assign(this, data);
-
-    }
-  },
-  delete: function() {
-
-  }
-
-var User = function(data) {
-  _.assign(this, data);
-}
-
-User.prototype = Object.create(Table.prototype);
-
-// table
-
-var userTable = connectedMesa
-  .table('user')
-  .queueAfterEachSelect(function(record) {
-    return new User(record);
-  });
-
-// static methods
-
-User.firstWhereFirstName = function(firstName) {
-  return userTable.where({first_name: firstName}).first();
-};
-
-// ...
-
-// instance methods
-
-User.prototype = {
-// getters
-  name: function() {
-    return this.first_name + this.last_name;
-  },
-  age: function() {
-    return moment().diff(this.birthday, 'years');
-  }
-};
-
-// use it
-
-User.firstWhereFirstName('alice').then(function(user) {
-  user.firstName = 'bob';
-  user.save().then(function(user) {
-    assert(user.name, 'bob');
-  });
-});
-
-```
 
 if you want to use camelcased property names in your program
 and underscored in your database you can automate the translation
@@ -321,6 +381,8 @@ add them to the mesa instance and have it work for all your tables
 
 by setting the order you ensure that the other hooks see
 camelcased properties !!!
+
+## includes
 
 fetch a one-to-one association (in a single additional query)
 
@@ -425,486 +487,9 @@ motivating example
 
 you can nest embeds.
 
-## background
+## why just postgres?
 
-mesa is not an orm. it aims to help as much as possible with the construction, composition and execution of sql queries
-while not restricting full access to the underlying database driver and database in any way.
-
-mesa builds on top of [mohair, a simple fluent sql query builder](https://github.com/snd/mohair).
-
-it adds the ability to run queries on connections, process query results, to declare and include
-associations (`hasOne`, `belongsTo`, `hasMany`, `hasManyThrough`) and more.
-
-mesa has been battle tested in a medium sized (8 heroku dynos) production environment
-for half a year.
-
-mesa uses criterion for sql-where-conditions.
-consult the [criterion readme](https://github.com/snd/criterion)
-and [mohair readme](https://github.com/snd/mohair) to get the full picture of what is possible with mesa.
-
-### use
-
-mesa has a fluent interface where every method returns a new object.
-no method ever changes the state of the object it is called on.
-this enables a functional programming style.
-
-#### require
-
-```javascript
-var mesa = require('mesa');
-```
-
-#### connections
-
-tell mesa how to get a connection from the pool:
-
-```javascript
-var pg = require('pg');
-
-var mesaWithConnection = mesa.connection(function(cb) {
-    pg.connect('tcp://username@localhost/database', cb);
-});
-
-```
-
-`mesaWithConnection` will now use the provided function to get connections
-for the commands you execute.
-these connections are under mesa's control.
-mesa will [properly call done()](https://github.com/brianc/node-postgres/wiki/pg#connectfunction-callback) on every connection it has obtained from the
-pool.
-
-#### tables
-
-specify the table to use:
-
-```javascript
-var userTable = mesaWithConnection.table('user');
-```
-
-#### command
-
-##### insert
-
-```javascript
-userTable.
-    .attributes(['name'])
-    .insert({
-        name: 'alice'
-    }, function(err, id) {
-    });
-```
-
-`attributes()` sets the properties to pick from data in the `create()` and `update()`
-methods. `attributes()` prevents mass assignment
-and must be called before using the `create()` or `update()` methods.
-
-##### insert multiple records
-
-```javascript
-userTable
-    .attributes(['name'])
-    .insertMany([
-        {name: 'alice'},
-        {name: 'bob'}
-    ], function(err, ids) {
-    });
-```
-
-##### insert with some raw sql
-
-```javascript
-userTable.
-    .attributes(['name', 'created'])
-    .insert({
-        name: 'alice',
-        created: userTable.raw('NOW()')
-    }, function(err, id) {
-    });
-```
-
-`raw()` can be used to inject arbitrary sql instead of binding a parameter.
-
-##### delete
-
-```javascript
-userTable.where({id: 3}).delete(function(err) {
-});
-```
-
-see the [criterion readme](https://github.com/snd/criterion) for all the ways to
-specify where conditions in mesa.
-
-##### update
-
-```javascript
-userTable
-    .where({id: 3})
-    .where({name: 'alice'})
-    .update({name: 'bob'}, function(err) {
-    });
-```
-
-multiple calls to `where` are anded together.
-
-#### query
-
-##### find the first
-
-```javascript
-userTable.where({id: 3}).first(function(err, user) {
-});
-```
-
-##### test for existence
-
-```javascript
-userTable.where({id: 3}).exists(function(err, exists) {
-});
-```
-
-##### find all
-
-```javascript
-userTable.where({id: 3}).find(function(err, user) {
-});
-```
-
-##### select, join, group, order, limit, offset
-
-```javascript
-userTable
-    .select('user.*, count(project.id) AS project_count')
-    .where({id: 3})
-    .where('name = ?', 'foo')
-    .join('JOIN project ON user.id = project.user_id')
-    .group('user.id')
-    .order('created DESC, name ASC')
-    .limit(10)
-    .offset(20)
-    .find(function(err, users) {
-    });
-```
-
-#### associations
-
-##### has one
-
-use `hasOne` if the foreign key is in the other table (`addressTable` in this example)
-
-```javascript
-var userTable = userTable.hasOne('address', addressTable, {
-    primaryKey: 'id',               // optional with default: 'id'
-    foreignKey: 'user_id'           // optional with default: userTable.getTable() + '_id'
-});
-```
-
-the second argument can be a function which must return a mesa object.
-this can be used to resolve tables which are not yet created when the association
-is defined.
-it's also a way to do self associations.
-
-##### belongs to
-
-use `belongsTo` if the foreign key is in the table that `belongsTo`
-is called on (`projectTable` in this example)
-
-```javascript
-var projectTable = projectTable.belongsTo('user', userTable, {
-    primaryKey: 'id',               // optional with default: 'id'
-    foreignKey: 'user_id'           // optional with default: userTable.getTable() + '_id'
-});
-```
-
-##### has many
-
-use `hasMany` if the foreign key is in the other table (`userTable` in this example) and
-there are multiple associated records
-
-```javascript
-var userTable = userTable.hasMany('projects', projectTable, {
-    primaryKey: 'id',               // optional with default: 'id'
-    foreignKey: 'user_id'           // optional with default: userTable.getTable() + '_id'
-});
-```
-
-##### has many through
-
-use `hasManyThrough` if the association uses a join table
-
-```javascript
-var userProjectTable = mesaWithConnection.table('user_project');
-
-var userTable = userTable.hasManyThrough('projects', projectTable, userProjectTable,
-    primaryKey: 'id',               // optional with default: 'id'
-    foreignKey: 'user_id',          // optional with default: userTable.getTable() + '_id'
-    otherPrimaryKey: 'id',          // optional with default: 'id'
-    otherForeignKey: 'project_id'   // optional with default: projectTable.getTable() + '_id'
-});
-```
-
-### advanced use
-
-##### extending mesa's fluent interface
-
-every mesa object prototypically inherits from the object
-before it in the fluent call chain.
-
-this means that every mesa object is very lightweight since
-it shares structure with objects before it in the fluent call chain.
-
-it also makes it very easy to extend mesa's fluent interface:
-
-```javascript
-var userTable = mesa.table('user');
-
-userTable.activeAdmins = function() {
-    return this.where({visible: true, role: 'admin'});
-};
-
-userTable.whereCreatedBetween = function(from, to) {
-    return this.where('created BETWEEN ? AND ?', from, to);
-};
-
-userTable
-    .order('created DESC')
-    .activeAdmins()
-    .whereCreatedBetween(new Date(2013, 4, 10), new Date(2013, 4, 12))
-    .find(function(err, users) {
-    });
-```
-
-##### user controlled connections
-
-sometimes, when using a transaction, you need to run multiple commands over multiple tables on the
-same connection.
-
-use `getConnection()` to get a raw connection from mesa.
-you can then run arbitrary sql on that connection.
-use `connection()` with a connection object to
-tell mesa to explicitely use that connection instead of getting
-a new one from the pool:
-
-```javascript
-userTable.getConnection(function(err, connection, done) {
-    connection.query('BEGIN', function(err) {
-        userTable
-            // use the transactional connection explicitely
-            .connection(connection)
-            .insert({name: 'alice'}, function(err, id) {
-
-                // run more commands in the transaction
-                // possibly on other tables
-
-                connection.query('COMMIT', function(err) {
-                    done();
-                });
-            });
-    });
-});
-```
-
-when you are done using the connection you need to call `done()` to
-tell node-postgres to return the connection to the pool.
-otherwise you will leak that connection, which is **very bad** since
-your application will run out of connections and hang.
-
-
-- `pgCallbackConnection(cb)` connects to `blaze_config_databaseUrl`
-   and calls `cb(connection, error, done)`
-- `pgConnection()` -> `Promise({connection: ..., done: ...})`
-   connects to `blaze_config_databaseUrl`
-   and returns promise containing `connection` and `done` callback
-- `pgQuery(connection, sql, [params])` -> `Promise(queryResult)`
-   runs query on connection
-- `pgWrapInConnection(function(connection) {function body that uses connection})` -> `Promise returned by function`
-   connects to `blaze_config_databaseUrl`,
-   calls function with connection,
-   closes connection
-- `pgSingleQuery(sql, params)` -> `Promise(queryResult)`
-   connects to `blaze_config_databaseUrl`,
-   runs query, closes connection
-- `pgWrapInTransaction(function(connection) {function body that uses connection})` -> `Promise returned by function`
-   connects to `blaze_config_databaseUrl`,
-   begins transactions
-   calls function with connection,
-   rolls transaction back if function throws or returns promise that is rejected,
-   commits transaction otherwise,
-   closes connection in any case
-
-
-## changelog
-
-### 
+we are just using postgres, not mysql, not sqlite.
 
 ## [license: MIT](LICENSE)
 
-## TODO
-
-- test isMesa
-
-- link objects that have a `left` and `right` attribute as well as a pointsLeft/direction/leftToRight attribute
-
-- the last argument {many: true, as: ...} is just for embeds, not for fetches
-
-- make fetchOther work with an unlimited amount of tables
-  - recursive and just consumes things
-
-- there still needs to be a link to the original records?
-- in fact we just need one last 
-
-- how do you determine which of the resulting records to add to the original records ?
-  - we need to take the intermediary records into account
-  - results are merged
-
-this results in ONE query per table
-
-as allows you to capture results on the original table
-
-if first is true then only the first is added
-
-generalizes hasMany, belongsTo and hasOne
-
-by default the last table in the chain is embedded
-this is the purpose of include
-otherwise you could leave it out
-- just default to `as: true` for last object
-
-rename args... to rest...
-
-you can set as to true for intermediaries to embed them with auto naming
-
-on any insert, delete, update and select
-
-left can also be a function
-
-load associated data from other tables or subqueries
-
-forwards: false ????
-
-forward is from primary key to foreign key
-
-backwards only matters for the auto generation
-if you provide the keys explicitely it is ignored
-
-every table object in an include is a single query
-
-`as` is always the key to add on the results of the table include was called on
-first determines whether the first
-
-results are merged
-
-queries are run sequentially
-
-the mechanism is really dense
-
-- things more complicated than through dont make a lot of sense
-
-- or hasManyThrough which is a lot simpler
-
-- and between the tables there are optional configuration objects
-
-- add more movies and cast
-
-- more integration tests for embeds
-
-- fix mohair to make travis tests work
-
-- chec that you do not side effect function arguments (options)
-- make sure that every function is exercised
-- expand active records integration test
-
-- unit test that escape works with schemas
-- test those really hardcore scenarios with mesas integration tests
-  - which ones?
-- improve keywords in package.json
-
-#mesa
-
-mesa is just query execution
-
-it uses promises to manage async code
-
-
-there are two kinds of functions: fluent and endpoints.
-fluent return a new mesa instance which prototypically inherits.
-endpoints return a promise.
-getters return some information: sql(), params(), mesa.info()
-both don’t change the mesa instance !
-
-connection management
-queries
-dealing with data records that are inserted and selected
-functional style
-
-define functions to be run before and after queries
-
-info():
-mohair.info()
-explicit connection or not
-steps
-execution order
-
-// runs for each record
-// runs for the entire collection
-
-before key
-beforeInsertRecord
-beforeUpdateRecord
-
-beforeCollection
-beforeInsertCollection
-
-you can unset by calling removeBeforeCollection(‘foo’)
-you can overwrite by calling again
-
-afterRecord
-afterCollection
-
-afterRecordInsert
-
-afterCollectionInsert
-
-afterRecordDelete
-
-you can call removeBeforeInsert(‘pick-allowed’) to disable it
-
-all steps are called with the mesa instance as `this`
-
-afterDeleteArray key
-
-replace placeholders in escape function and in .sql()
-
-
-steps to be done with the data
-
-write examples for use cases into readme
-
-use cases:
-
-filter data / prevent mass assignment
-convert to/from Facebook immutable data and/or mori data
-auto set created_at / updated_at timestamps
-hash passwords
-omit sensitive data (passwords) from outputs
-fetch and embed associated data
-auto convert from camel case to underscore and vice versa
-wrap data in instances
-
-
-“rohr” or cathode
-
-
-merge
-
-provide as many embed helpers as needed
-
-hooks play super nice with promises
-
-
-
-
-
-order(foo: ‘desc’) (is a mohair thing)
-
-mesa is a moving target.
-we are using it in production and it grows with the challenges it helps us solve.
