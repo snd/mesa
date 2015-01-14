@@ -101,13 +101,29 @@ helpers.normalizeIncludeArguments = (args...) ->
 ################################################################################
 # core
 
-mesaBase =
+mesaBaseProperties =
 
   # the magic behind mohair's fluent interface:
-  # prototypically inherit from `this` and set `key` to `value`
+  # after benchmarking several possible solutions
+  # and even prototypically inheriting from the calling objects
+  # i found that
+  # splitting the properties
+  # and
+  # is the most time and space efficient solution.
+  # in reality only very few properties
+  #
+  # with prototypical inheritance produces a long prototype chain.
+  # long prorotypical inheritance chains are not performant.
+  # it also prevents the entire chain from being garbage collected
+  # which requires a lot of space.
+  #
+  # all intermediaries can be safely garbage collected
 
   clone: ->
-    clone = Object.create mesaBase
+    clone = Object.create mesaBaseProperties
+    # we later make it such that `mesaBaseProperties` is the prototype of `this`:
+    # copy over everything that is not in `mesaBaseProperties`
+    # which is usually very few properties.
     for own k, v of this
       clone[k] = v
     return clone
@@ -513,9 +529,9 @@ setQueueProperties = (object, suffix) ->
 # queueBeforeInsert, queueBeforeEachInsert
 # queueBeforeEachUpdate (just that because the update is a single object/record)
 
-setQueueProperties(mesaBase, 'BeforeInsert')
-setQueueProperties(mesaBase, 'BeforeEachInsert')
-setQueueProperties(mesaBase, 'BeforeEachUpdate')
+setQueueProperties(mesaBaseProperties, 'BeforeInsert')
+setQueueProperties(mesaBaseProperties, 'BeforeEachInsert')
+setQueueProperties(mesaBaseProperties, 'BeforeEachUpdate')
 
 # queueAfterSelect, queueAfterEachSelect
 # queueAfterInsert, queueAfterEachInsert
@@ -523,24 +539,24 @@ setQueueProperties(mesaBase, 'BeforeEachUpdate')
 # queueAfterDelete, queueAfterEachDelete
 
 for phase in ['Select', 'Insert', 'Update', 'Delete']
-  setQueueProperties(mesaBase, 'After' + phase)
-  setQueueProperties(mesaBase, 'AfterEach' + phase)
+  setQueueProperties(mesaBaseProperties, 'After' + phase)
+  setQueueProperties(mesaBaseProperties, 'AfterEach' + phase)
 
-mesaBase.queueBeforeEach = (args...) ->
+mesaBaseProperties.queueBeforeEach = (args...) ->
   object = @clone()
   ['Insert', 'Update'].forEach (phase) ->
     propertyName = '_queueBeforeEach' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
-mesaBase.queueAfter = (args...) ->
+mesaBaseProperties.queueAfter = (args...) ->
   object = @clone()
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfter' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
-mesaBase.queueAfterEach = (args...) ->
+mesaBaseProperties.queueAfterEach = (args...) ->
   object = @clone()
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfterEach' + phase
@@ -550,20 +566,20 @@ mesaBase.queueAfterEach = (args...) ->
 ################################################################################
 # exports
 
-mesaBase.isMesa = helpers.isMesa = (object) ->
-  mesaBase.isPrototypeOf object
+mesaBaseProperties.isMesa = helpers.isMesa = (object) ->
+  mesaBaseProperties.isPrototypeOf object
 
-mesaBase.helpers = helpers
+mesaBaseProperties.helpers = helpers
 
-# put mesaBase one step away from the exported object in the prototype chain
+# put mesaBaseProperties one step away from the exported object in the prototype chain
 # such that mesa.clone() does not copy the mesaBase properties.
 # mesa.clone() just copies OWN properties.
 # user-added methods are OWN properties and get copied.
 # this keeps the copies small which is nice for performance (memory and cpu)
 # and makes inspecting the `this` objects more pleasant as they
 # only contain relevant state.
-mesa = Object.create mesaBase
+mesaOwnProperties = Object.create mesaBaseProperties
 
-module.exports = mesa
+module.exports = mesaOwnProperties
   # enable mass assignment protection
-  .queueBeforeEach(mesa.pickAllowed)
+  .queueBeforeEach(mesaOwnProperties.pickAllowed)
