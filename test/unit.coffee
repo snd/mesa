@@ -55,6 +55,24 @@ module.exports =
 
     mesa.call f, 'x'
 
+  'user-added method is copied and can be chained': (test) ->
+    table = mesa.table('user')
+    thisInFoo = null
+    table.foo = ->
+      thisInFoo = this
+      this
+    rightBeforeCallToFoo = table
+      .allow('a', 'b')
+      .where(c: 3)
+
+    rightBeforeCallToFoo
+      .foo()
+      .order('id DESC')
+
+    test.equal rightBeforeCallToFoo, thisInFoo
+
+    test.done()
+
   'getTable': (test) ->
     # TODO
     # test.equal 'user', mesa.table('user').getTable()
