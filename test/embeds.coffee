@@ -430,35 +430,37 @@ module.exports =
           test.deepEqual names(people[7].directors), ['Tony Scott', 'Michael Mann']
           test.done()
 
-#     'nested: fetch all actors with all their movies and director and actors for every movie': (test) ->
-#       starringPeople = personTable
-#         .distinct('id')
-#         .join('JOIN starring ON person.id = starring.person_id')
-#
-#       starringPeople
-#         .include(
-#           starringTable
-#           {forward: false}
-#           movieTable
-#             .include(
-#               {forward: false, left: 'director_id', first: true, as: 'director'}
-#               personTable
-#             )
-#             .include(
-#               starringTable
-#               {forward: false, as: 'actors'}
-#               personTable
-#             )
-#         )
-#         .find()
-#         .then (actors) ->
-#           console.log actors
-#           test.done()
-#
+    'nested: fetch all actors with all their movies and director and actors for every movie': (test) ->
+      starringPeople = personTable
+        .distinct('ON (id)')
+        .join('JOIN starring ON person.id = starring.person_id')
 
-# TODO include some things along the way
+      starringPeople
+        .include(
+          starringTable
+          {forward: false}
+          movieTable
+            .include(
+              {forward: false, left: 'director_id', first: true, as: 'director'}
+              personTable
+            )
+            .include(
+              starringTable
+              {forward: false, as: 'actors'}
+              personTable
+            )
+        )
+        .find()
+        .then (actors) ->
+          console.log actors
+          test.done()
 
-# TODO has many through with join
+      # TODO test with filtered
+      # just movies in a certain time range
+
+      # TODO include some things along the way
+
+      # TODO has many through with join
 
 #   TODO the directors an actor had to do with
 #
