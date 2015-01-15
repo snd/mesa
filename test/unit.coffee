@@ -121,6 +121,13 @@ module.exports =
     test.equal 'user', mesa.table('user').getTable()
     test.done()
 
+  'isMesa': (test) ->
+    test.ok mesa.isMesa mesa
+    test.ok mesa.isMesa mesa.table('user')
+    test.ok mesa.isMesa mesa.table('user').where(id: 3)
+    test.ok not mesa.isMesa {}
+    test.done()
+
   'the entire mohair interface works and is exposed': (test) ->
     # TODO
     test.done()
