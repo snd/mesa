@@ -78,7 +78,7 @@ helpers.normalizeIncludeArguments = (args...) ->
   lastIndex = args.length - 1
 
   args.forEach (arg, index) ->
-    if helpers.isMesa arg
+    if helpers.isInstance arg
       if leftTable?
         # last results are always included
         link = if link? then _.clone(link) else {}
@@ -101,7 +101,17 @@ helpers.normalizeIncludeArguments = (args...) ->
 ################################################################################
 # core
 
-mesaBaseProperties =
+Mesa = (source) ->
+  if source
+    # only copy OWN properties.
+    # don't copy properties on the prototype.
+    # OWN properties are just non-default values and user defined methods.
+    # OWN properties tend to be very few for most queries.
+    for own k, v of source
+      this[k] = v
+  return this
+
+Mesa.prototype =
 
   # the magic behind mohair's fluent interface:
   # after benchmarking several possible solutions
@@ -119,24 +129,15 @@ mesaBaseProperties =
   #
   # all intermediaries can be safely garbage collected
 
-  clone: ->
-    clone = Object.create mesaBaseProperties
-    # we later make it such that `mesaBaseProperties` is the prototype of `this`:
-    # copy over everything that is not in `mesaBaseProperties`
-    # which is usually very few properties.
-    for own k, v of this
-      clone[k] = v
-    return clone
-
   fluent: (key, value) ->
-    next = @clone()
+    next = new Mesa @
     next[key] = value
     return next
 
   # call a one-off function as if it were part of mesa
   call: (f, args...) ->
     result = f.apply @, args
-    unless helpers.isMesa result
+    unless helpers.isInstance result
       throw new Error 'the function passed to .call() must return a mesa-object'
     return result
 
@@ -146,7 +147,7 @@ mesaBaseProperties =
   each: (arrayOrObject, fn, args...) ->
     callback = (that, value, indexOrKey) ->
       result = fn.call that, value, indexOrKey, args...
-      unless helpers.isMesa result
+      unless helpers.isInstance result
         throw new Error 'the function passed to .each() must return a mesa-object'
       result
     _.reduce arrayOrObject, callback, this
@@ -543,9 +544,9 @@ setQueueProperties = (object, suffix) ->
 # queueBeforeInsert, queueBeforeEachInsert
 # queueBeforeEachUpdate (just that because the update is a single object/record)
 
-setQueueProperties(mesaBaseProperties, 'BeforeInsert')
-setQueueProperties(mesaBaseProperties, 'BeforeEachInsert')
-setQueueProperties(mesaBaseProperties, 'BeforeEachUpdate')
+setQueueProperties(Mesa.prototype, 'BeforeInsert')
+setQueueProperties(Mesa.prototype, 'BeforeEachInsert')
+setQueueProperties(Mesa.prototype, 'BeforeEachUpdate')
 
 # queueAfterSelect, queueAfterEachSelect
 # queueAfterInsert, queueAfterEachInsert
@@ -553,25 +554,25 @@ setQueueProperties(mesaBaseProperties, 'BeforeEachUpdate')
 # queueAfterDelete, queueAfterEachDelete
 
 for phase in ['Select', 'Insert', 'Update', 'Delete']
-  setQueueProperties(mesaBaseProperties, 'After' + phase)
-  setQueueProperties(mesaBaseProperties, 'AfterEach' + phase)
+  setQueueProperties(Mesa.prototype, 'After' + phase)
+  setQueueProperties(Mesa.prototype, 'AfterEach' + phase)
 
-mesaBaseProperties.queueBeforeEach = (args...) ->
-  object = @clone()
+Mesa.prototype.queueBeforeEach = (args...) ->
+  object = new Mesa @
   ['Insert', 'Update'].forEach (phase) ->
     propertyName = '_queueBeforeEach' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
-mesaBaseProperties.queueAfter = (args...) ->
-  object = @clone()
+Mesa.prototype.queueAfter = (args...) ->
+  object = new Mesa @
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfter' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
   return object
 
-mesaBaseProperties.queueAfterEach = (args...) ->
-  object = @clone()
+Mesa.prototype.queueAfterEach = (args...) ->
+  object = new Mesa @
   ['Select', 'Insert', 'Update', 'Delete'].forEach (phase) ->
     propertyName = '_queueAfterEach' + phase
     object[propertyName] = object[propertyName].concat [payload args...]
@@ -580,10 +581,10 @@ mesaBaseProperties.queueAfterEach = (args...) ->
 ################################################################################
 # exports
 
-mesaBaseProperties.isMesa = helpers.isMesa = (object) ->
-  mesaBaseProperties.isPrototypeOf object
+Mesa.prototype.isInstance = helpers.isInstance = (object) ->
+  object instanceof Mesa
 
-mesaBaseProperties.helpers = helpers
+Mesa.prototype.helpers = helpers
 
 # put mesaBaseProperties one step away from the exported object in the prototype chain
 # such that mesa.clone() does not copy the mesaBase properties.
@@ -592,8 +593,8 @@ mesaBaseProperties.helpers = helpers
 # this keeps the copies small which is nice for performance (memory and cpu)
 # and makes inspecting the `this` objects more pleasant as they
 # only contain relevant state.
-mesaOwnProperties = Object.create mesaBaseProperties
+mesa = new Mesa
 
-module.exports = mesaOwnProperties
+module.exports = mesa
   # enable mass assignment protection
-  .queueBeforeEach(mesaOwnProperties.pickAllowed)
+  .queueBeforeEach(mesa.pickAllowed)
