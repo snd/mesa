@@ -153,6 +153,6 @@ module.exports =
     test.ok not mesa.isInstance {}
     test.done()
 
-  'the entire mohair interface works and is exposed': (test) ->
+  'the entire mohair interface is exposed and working': (test) ->
     # TODO
     test.done()
