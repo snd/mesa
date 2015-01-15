@@ -27,6 +27,31 @@ module.exports =
     test.equal rightBeforeCallToFoo, thisInFoo
     test.done()
 
+  'the correct properties (only own) are copied': (test) ->
+    test.deepEqual Object.getOwnPropertyNames(mesa), [
+      '_queueBeforeEachInsert'
+      '_queueBeforeEachUpdate'
+    ]
+
+    userTable = mesa.table('user')
+    test.deepEqual Object.getOwnPropertyNames(userTable), [
+      '_queueBeforeEachInsert'
+      '_queueBeforeEachUpdate'
+      '_mohair'
+    ]
+
+    userTable.userAddedMethod = ->
+
+    test.deepEqual Object.getOwnPropertyNames(userTable.debug(console.log)), [
+      '_queueBeforeEachInsert'
+      '_queueBeforeEachUpdate'
+      '_mohair'
+      'userAddedMethod'
+      '_debug'
+    ]
+
+    test.done()
+
   'queueBeforeEachInsert is called with correct `this` value': (test) ->
     test.expect 1
 
@@ -121,11 +146,11 @@ module.exports =
     test.equal 'user', mesa.table('user').getTable()
     test.done()
 
-  'isMesa': (test) ->
-    test.ok mesa.isMesa mesa
-    test.ok mesa.isMesa mesa.table('user')
-    test.ok mesa.isMesa mesa.table('user').where(id: 3)
-    test.ok not mesa.isMesa {}
+  'isInstance': (test) ->
+    test.ok mesa.isInstance mesa
+    test.ok mesa.isInstance mesa.table('user')
+    test.ok mesa.isInstance mesa.table('user').where(id: 3)
+    test.ok not mesa.isInstance {}
     test.done()
 
   'the entire mohair interface works and is exposed': (test) ->
