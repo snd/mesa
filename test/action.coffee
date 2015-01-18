@@ -28,6 +28,18 @@ module.exports =
         test.equal debug.calls.length, 4
         test.done()
 
+  'query with sql fragment': (test) ->
+    debug = spy()
+    fragment =
+      sql: -> 'SELECT * FROM "user" WHERE name = $1'
+      params: -> ['laura']
+    mesa
+      .debug(debug)
+      .query(fragment).then (results) ->
+        test.equal results.rows.length, 1
+        test.equal debug.calls.length, 4
+        test.done()
+
 ################################################################################
 # find
 

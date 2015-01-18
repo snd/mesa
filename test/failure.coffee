@@ -26,6 +26,16 @@ module.exports =
       test.equal e.message, '.setConnection() must be called with either a connection object or a function that takes a callback and calls it with a connection'
       test.done()
 
+  'query with sql fragment and params': (test) ->
+    fragment =
+      sql: -> 'SELECT * FROM "user" WHERE name = $1'
+      params: -> ['laura']
+    try
+      mesa.query(fragment, [])
+    catch e
+      test.equal e.message, 'query with sql fragment as first arg is not allowed to have a second arg'
+      test.done()
+
   'find without preceeding .setConnection()': (test) ->
     mesa.find().catch (e) ->
       test.equal e.message, 'the method you are calling requires a call to .setConnection() before it'

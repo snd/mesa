@@ -281,7 +281,14 @@ Mesa.prototype =
       block(connection).finally ->
         done?()
 
-  query: (sql, params) ->
+  query: (sqlOrFragment, params) ->
+    if mohair.implementsSqlFragmentInterface sqlOrFragment
+      sql = helpers.replacePlaceholders sqlOrFragment.sql helpers.schemaAwareEscape
+      if params?
+        throw new Error 'query with sql fragment as first arg is not allowed to have a second arg'
+      params = sqlOrFragment.params()
+    else
+      sql = sqlOrFragment
     that = @
     debug = @_debug
     @wrapInConnection (connection) ->
