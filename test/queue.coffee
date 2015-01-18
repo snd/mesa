@@ -134,9 +134,9 @@ module.exports =
       rows: rows
 
     mesa = Object.create mesa
-    mesa.query = (sql, params) ->
-      test.equal sql, 'INSERT INTO "movie"("a", "b", "c") VALUES ($1, $2, $3) RETURNING *'
-      test.deepEqual params, [1, 2, 3]
+    mesa.query = (fragment) ->
+      test.equal fragment.sql(), 'INSERT INTO "movie"("a", "b", "c") VALUES (?, ?, ?) RETURNING *'
+      test.deepEqual fragment.params(), [1, 2, 3]
       return Promise.resolve results
 
     mesa
@@ -209,9 +209,9 @@ module.exports =
       rows: rows
 
     mesa = Object.create mesa
-    mesa.query = (sql, params) ->
-      test.equal sql, 'UPDATE "movie" SET "a" = $1, "b" = $2, "c" = $3 RETURNING *'
-      test.deepEqual params, [1, 2, 3]
+    mesa.query = (fragment) ->
+      test.equal fragment.sql(), 'UPDATE "movie" SET "a" = ?, "b" = ?, "c" = ? RETURNING *'
+      test.deepEqual fragment.params(), [1, 2, 3]
       return Promise.resolve results
 
     mesa
@@ -262,9 +262,9 @@ module.exports =
       rows: rows
 
     mesa = Object.create mesa
-    mesa.query = (sql, params) ->
-      test.equal sql, 'SELECT * FROM "movie"'
-      test.deepEqual params, []
+    mesa.query = (fragment) ->
+      test.equal fragment.sql(), 'SELECT * FROM "movie"'
+      test.deepEqual fragment.params(), []
       return Promise.resolve results
 
     mesa
@@ -307,9 +307,9 @@ module.exports =
       rows: rows
 
     mesa = Object.create mesa
-    mesa.query = (sql, params) ->
-      test.equal sql, 'DELETE FROM "movie" RETURNING *'
-      test.deepEqual params, []
+    mesa.query = (fragment) ->
+      test.equal fragment.sql(), 'DELETE FROM "movie" RETURNING *'
+      test.deepEqual fragment.params(), []
       return Promise.resolve results
 
     mesa

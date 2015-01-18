@@ -387,10 +387,7 @@ Mesa.prototype =
           if Object.keys(record).length is 0
             throw new Error "insert would fail because record at index #{index} is empty after processing before queue"
 
-        query = that._mohair.insert records
-        sql = helpers.replacePlaceholders query.sql()
-
-        that.query(sql, query.params()).then (results) ->
+        that.query(that._mohair.insert(records)).then (results) ->
           that.afterQuery(results,
             returnFirst: returnFirst
             after: that._queueAfterInsert
@@ -406,10 +403,7 @@ Mesa.prototype =
     @runQueue(@_queueBeforeEachUpdate, update).then (update) ->
       debug? 'update', 'after-queue', {update: update}, {}, that
 
-      query = that._mohair.update update
-      sql = helpers.replacePlaceholders query.sql()
-
-      that.query(sql, query.params()).then (results) ->
+      that.query(that._mohair.update(update)).then (results) ->
         that.afterQuery results,
           returnFirst: that._returnFirst
           after: that._queueAfterUpdate
@@ -420,10 +414,7 @@ Mesa.prototype =
       throw new Error helpers.ignoredArgumentWarning '.delete()'
     that = this
 
-    query = that._mohair.delete()
-    sql = helpers.replacePlaceholders query.sql()
-
-    that.query(sql, query.params()).then (results) ->
+    that.query(that._mohair.delete()).then (results) ->
       that.afterQuery results,
         returnFirst: that._returnFirst
         after: that._queueAfterDelete
@@ -438,9 +429,7 @@ Mesa.prototype =
 
     that = this
 
-    sql = helpers.replacePlaceholders that.sql()
-
-    that.query(sql, that.params()).then (results) ->
+    that.query(this).then (results) ->
       that.afterQuery results,
         returnFirst: that._returnFirst
         after: that._queueAfterSelect
@@ -458,10 +447,7 @@ Mesa.prototype =
     if arg?
       throw new Error helpers.ignoredArgumentWarning '.exists()'
 
-    query = @_mohair.limit(1)
-    sql = helpers.replacePlaceholders query.sql()
-
-    @query(sql, query.params()).then (results) ->
+    @query(@_mohair.limit(1)).then (results) ->
       results.rows? and results.rows.length isnt 0
 
 ################################################################################
