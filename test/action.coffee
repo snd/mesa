@@ -23,7 +23,7 @@ module.exports =
     debug = spy()
     mesa
       .debug(debug)
-      .query('SELECT * FROM "user" WHERE name = $1', ['laura']).then (results) ->
+      .query('SELECT * FROM "user" WHERE name = ?', ['laura']).then (results) ->
         test.equal results.rows.length, 1
         test.equal debug.calls.length, 4
         test.done()
@@ -31,7 +31,7 @@ module.exports =
   'query with sql fragment': (test) ->
     debug = spy()
     fragment =
-      sql: -> 'SELECT * FROM "user" WHERE name = $1'
+      sql: -> 'SELECT * FROM "user" WHERE name = ?'
       params: -> ['laura']
     mesa
       .debug(debug)
