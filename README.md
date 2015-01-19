@@ -5,7 +5,7 @@
 [![Dependencies](https://david-dm.org/snd/mesa.svg)](https://david-dm.org/snd/mesa)
 
 > simply elegant sql for nodejs:
-build and execute queries, manage connections
+mesa is an build and execute queries, manage connections
 
 
 mesa is an immensely useful and pragmatic
@@ -16,12 +16,18 @@ as simple as possible.
 currently in alpha and available on npm as `mesa@1.0.0-alpha.*`.**
 **it's already used in production, is extremely useful, well tested
 and quite stable !**
-**this documentation does not yet represent everything that is possible with mesa.**
-**`mesa@1.0.0` will be released WHEN IT'S DONE !**
+
+**mesa is a moving target. we are using it in production and it
+grows and changes with the challenges it helps us solve.**
+
+**`mesa@1.0.0` will be released when it's done !**
+
+this documentation does not yet represent everything that is possible with mesa.
+feel free to [look at the code](src/mesa.coffee). it's just around 600 lines.
 
 [click here for documentation and code of `mesa@0.7.1` which will see no further development.](https://github.com/snd/mesa/tree/0.7.1)
 
-## introduction
+## install
 
 install latest:
 
@@ -53,13 +59,14 @@ var database = mesa
   });
 ```
 
-a call to `setConnection` is the only thing tying the `database` mesa-object
+a call to `setConnection` is the (only) thing
+tying/coupling the `database` mesa-object
 to the node-postgres library and to the specific database.
 
 ## core ideas and configuration
 
 calling `setConnection(callbackOrConnection)` has returned a new object.
-the original `mesa` object is not modified:
+the original mesa-object is not modified:
 
 ``` js
 assert(database !== mesa);
@@ -68,8 +75,8 @@ assert(database !== mesa);
 **mesa embraces functional programming:
 no method call on a mesa-object modifies that object.
 mesa configuration methods are [pure](https://en.wikipedia.org/wiki/Pure_function):
-they create a new mesa-object that prototypically inherits from the one before it,
-set some property on the new object and return the new object.**
+they create a NEW mesa-object copy all OWN properties over to it,
+set some property and return it.**
 
 let's configure some tables:
 
@@ -82,7 +89,7 @@ var personTable = database.table('person');
 there are no special database-objects, table-objects or query-objects in mesa.
 only mesa-objects that all have the same methods.
 order of configuration method calls does not matter.
-you can change everything at any time:
+you can change anything at any time:
 
 ``` js
 var personTableInOtherDatabase = personTable
@@ -91,16 +98,18 @@ var personTableInOtherDatabase = personTable
   });
 ```
 
-from the above properties follows that **method calls on mesa-objects can be chained !**.
+**it naturally follows that method calls on mesa-objects are chainable !**
 
 ``` js
 var rRatedMoviesOfThe2000s = movieTable
-  // `where` accepts raw sql + optional parameter bindings
+  // `where` accepts raw sql and optional parameter bindings
   .where('year BETWEEN ? AND ?', 2000, 2009)
   // repeated calls to where are 'anded' together
   // `where` accepts objects that describe conditions
   .where({rating: 'R'});
 ```
+
+### criterion
 
 the `.where()` and `.having()` methods take **exactly** the same
 arguments as criterion...
@@ -114,9 +123,26 @@ rRatedMoviesOfThe2000s.params();
 // -> [2000, 2009, 'R']
 ```
 
-we can refine 
-mesa builds on top of mohair
-consult mohair 
+### mohair
+
+mesa uses mohair to generate sql which it then sends to the database.
+in addition to it's own methods every mesa-object has the entire interface
+of a mohair-object.
+for this reason the mohair methods are not documented in this readme.
+consult the mohair documentation as well to get the full picture.
+
+**mohair powers mesa's `.where`
+
+### criterion
+
+mesa's `.where` method is one such method that is implemented by mohair
+mohair uses criterion
+
+for this reason the criterion methods are not documented in this readme.
+
+**criterion powers/documents mesa's `.where` and `.having`
+
+we can refine:
 
 ``` js
 var top10GrossingRRatedMoviesOfThe2000s = rRatedMoviesOfThe2000s
@@ -124,13 +150,14 @@ var top10GrossingRRatedMoviesOfThe2000s = rRatedMoviesOfThe2000s
   .limit(10);
 ```
 
-**mesa embraces prototypical inheritance:
-because every mesa-object prototypically inherits from the one before it
+**because every mesa-object gets a copy of all
 a method added to a mesa-object
-is available on all mesa-objects down the chain - this is huge ! :**
+is available on all mesa-objects down the chain.**
+
+this makes it very easy to extend the chainable interface...
 
 ``` js
-movieTable.inYearRange = function(from, to) {
+movieTable.betweenYears = function(from, to) {
   return this
     .where('year BETWEEN ? AND ?', from to);
 };
@@ -142,12 +169,12 @@ movieTable.page = function(page, perPage) {
     .offset(page * perPage);
 };
 
-var top3GrossingPG13RatedMoviesOfThe90s = movieTable
+var paginatedTopGrossingPG13RatedMoviesOfThe90s = movieTable
   // we can freely chain and mix build-in and custom methods !
   .order('box_office_gross_total DESC')
   .page(2)
   .where({rating: 'PG13'})
-  .whereInYearRange(1990, 1999);
+  .betweenYears(1990, 1999);
 ```
 
 **we see how pure functions and immutability lead to simplicity, reusability
@@ -181,7 +208,7 @@ top10GrossingRRatedMoviesOfThe2000s
   });
 ```
 
-we can also simply check whether a record exists:
+we can also simply check whether a query returns any records:
 
 ``` js
 movieTable
@@ -215,7 +242,7 @@ and can ensure that no properties
 can disable this by calling `.unsafe()`.
 you can reenable it by calling `.unsafe(false)`.
 
-you can insert multiple records by massing multiple arguments and/or arrays
+you can insert multiple records by passing multiple arguments and/or arrays
 to insert:
 
 ``` js
@@ -235,17 +262,19 @@ movieTable
   })
 ```
 
+you see that mesa returns the inserted records by default
+
 ## update queries
+
+This part is coming soon.
 
 ## delete queries
 
-## connections revisited
-
-## queueing
-
-## including
+This part is coming soon.
 
 ## connections revisited
+
+This part is coming soon.
 
 ``` js
 ```
@@ -306,15 +335,49 @@ do something to the records
 
 you can `configure` mesa instances.
 
-mesa comes with a very powerful mechanism to manipulate
-records before they are sent to the database or after they were received
-from the database and before returning them.
+you can add functions to the queues with the following ways
 
-mesa uses the queueing mechanism itself for [mass assignment protection]() and for [embedding associated data]()
+hooks either run on a the array of all items or item
 
-see the appendix for useful examples
+array queues are run before 
 
-[hash passwords](#hash-passwords)
+functions in queues are run in the order they were added.
+
+there are the following queues:
+
+- `queueBeforeInsert` run before insert on array of items
+- there is no `queueBeforeUpdate` because update always operates on a single item. use `queueBeforeEachUpdate`
+- `queueBeforeEachInsert` run before insert on each item
+- `queueBeforeEachUpdate` run before update on each item
+- `queueBeforeEach` run before update or insert on each item
+
+- `queueAfterSelect` run after find or first on array of items
+- `queueAfterInsert` run after insert on array of items
+- `queueAfterUpdate` run after update on array of items
+- `queueAfterDelete` run after delete on array of items
+- `queueAfter` run after find, first, insert, update and delete on array of items
+
+- `queueAfterEachSelect` run after find or first on each item
+- `queueAfterEachInsert` run after insert on each item
+- `queueAfterEachUpdate` run after update on each item
+- `queueAfterEachDelete` run after delete on each item
+- `queueAfterEach` run after find, first, insert, update and delete on each item
+
+### nice things you can to with queueing:
+
+#### omit password property when a user is returned
+
+``` js
+var _ = require('lodash');
+
+userTable
+  .queueAfterEachSelect(_.omit, 'password')
+  .where({id: 3})
+  .first(function(user) {
+  });
+```
+
+#### hash password before user is inserted or updated
 
 ``` js
 var Promise = require('bluebird');
@@ -333,34 +396,33 @@ var hashPassword = function(record) {
 userTable = userTable.queueBeforeEach(hashPassword);
 ```
 
-now the user table
+#### convert property names between camelCase and snake_case
+
+[see example/active-record.coffee](example/active-record.coffee)
+
+#### set columns like `created_at` and `updated_at` automatically
 
 ``` js
-var immutable = require('immutable');
-
-var fromImmutable(
-
-userTable
-  .beforeEach('fromImmutable', fromImmutable)
-  .afterEach('toImmutable', toImmutable)
-  .order('hashPassword', 'toImmutable')
-user
+userTable = userTable
+  .queueBeforeEach(function(record) {
+    record.updated_at = new Date();
+    return record;
+  })
+  .queueBeforeInsert(function(record) {
+    record.created_at = new Date();
+    return record;
+  });
 ```
 
-``` js
-var _ = require('lodash');
+#### fetch associated data
 
-  .queueAfterEachSelect(_.omit, 'password')
-```
+[see includes](#includes)
 
-using hooks you can simulate the active record pattern like this:
+#### protect from mass assignment
 
-mesa uses the data mapper pattern
-
-mesa is the mapper
-
-and the data is just plain java objects
-
+mesa comes with a very powerful mechanism to manipulate
+records before they are sent to the database or after they were received
+from the database and before returning them.
 
 if you are familiar with the active record pattern
 prefer a more object-oriented style
@@ -384,6 +446,110 @@ camelcased properties !!!
 
 ## includes
 
+**includes are a NEW feature and may not be as stable as the rest**
+
+in any rows in different tables are linked via foreign keys.
+
+includes make it easy to fetch those linked rows and add them to our data:
+
+lets assume, for a moment, the following tables and relationships:
+
+- `user` with columns `id`, `name`. has one `address`, has many `orders`
+- `address` with columns `id`, `street`, `city`, `user_id`. belongs to `user` via foreign key `user_id` -> `user.id`
+- `order` with columns `id`, `status`. belongs to `user`
+
+``` js
+userTable = database.table('user');
+addressTable = database.table('address');
+orderTable = database.table('order');
+```
+
+we can now find some users and include the orders in each of them:
+
+### has many relationship
+
+``` js
+userTable
+  .include(orderTable)
+  .find(function(users) {
+
+  })
+```
+
+a lot is happening here. let's break it down:
+
+include has no side-effects and does not fetch any data.
+instead it [queues](#queueing) a function to be executed
+on all results (if any) of `first`, `find`, `insert`, `delete` and `update`
+queries further down the chain.
+
+in this case that function will
+will run a query on `orderTable` to fetch all
+orders where `order.user_id` is in the list of all `id` values in `users`.
+it will then for every user add as property `orders` the list of all
+orders where `user.id === order.user_id`.
+
+**by default include queues a fetch of a has-many relationship**
+
+the above code snippet is equivalent to this:
+
+``` js
+userTable
+  .include({
+    left: 'id',
+    right: 'user_id',
+    forward: true,
+    first: false,
+    as: 'orders'
+  }, orderTable)
+  .find(function(users) {
+
+  })
+```
+
+the first argument to
+
+in case that link-object is missing or any properties are missing (and only those fields)
+mesa will autocomplete it from table names , primary keys set with `.primaryKey(key)`
+
+### belongs to relationship
+
+``` js
+orderTable
+  .include({forward: false, first: true}, userTable)
+  .find(function(users) {
+
+  })
+```
+
+### has many through
+
+you can add as many additional link
+
+
+
+you can modify, add conditions
+
+
+
+you can nest
+
+
+
+
+
+
+using an explicit link object:
+
+
+**you get the idea**
+
+includes are intentionally very flexible.
+they work with any two tables where the values in 
+whose values match up.
+
+if you are using primary keys other than `id`
+
 fetch a one-to-one association (in a single additional query)
 
 the implementation uses the hooks
@@ -391,105 +557,64 @@ its surprisingly simple
 
 using the same connection as the
 
-does not fetch the association right away
-neither does it set some 
-instead it uses the hooks to queue that associations be
-fetched after a find, first, delete and update.
-
 use one additional query to fetch all 
 and then associate them with the records
 
 order and conditions and limits on the other tables have their full effects
 
-``` js
-commentTable
-  .belongsTo({
-    table: userTable, // REQUIRED
-    fk: 'user_id', // foreign key, default '{table.name}_id'
-    pk: 'id', // primary key, default 'id'
-    as: 'user' // property name, default '{table.name}'
-  })
-  .find()
-  .then(function(comments) {
-    // comments[0].user -> fetched user record
-  })
-```
+## conditional
 
-you can add your own conditions to associations
-
-fetch only not-deleted associated
+using mesa you'll often find yourself calling methods only
+when certain conditions are met:
 
 ``` js
-commentTable
-  .queueBelongsTo({
-    table: userTable.where(is_deleted: false)
-  })
-  .find()
-  .then(function(comments) {
-    // comments[0].user -> fetched user record
-  })
+var dontFindDeleted = true;
+var pagination = {page: 4, perPage: 10};
+
+var tmp = userTable;
+
+if (dontFindDeleted) {
+  tmp = userTable.where({is_deleted: false});
+}
+
+if (pagination) {
+  tmp = tmp
+    .limit(pagination.perPage)
+    .offset(pagination.page * pagination.perPage);
+}
+
+tmp.find(function(users) {
+});
 ```
 
-one to many:
+all those temporary objects are not very nice.
+
+fortunately there is another way:
 
 ``` js
 userTable
-  .queueEmbedHasMany({
-    table: commentTable, // REQUIRED
-    pk: 'id', // primary key, default 'id'
-    fk: 'user_id', // foreign key, default '{this.getTable()}_id'
-    as: 'comments' // property name, default '{table.getTable()}s'
+  .when(dontFindDeleted, userTable.where, {is_deleted: false})
+  .when(pagination, function() {
+    return this
+      .limit(pagination.perPage)
+      .offset(pagination.page * pagination.perPage);
   })
-  .find()
-  .then(function(comments) {
-
-  })
+  .find(function(users) {
+  });
 ```
 
-has-one and belongs-to relationships can also be fetched
-in a single query by using a join.
+## contribution
 
-``` js
-var userColums = [
-  'first_name',
-  'last_name',
-  'birthday'
-];
+**TL;DR: bugfixes, issues and discussion are always welcome.
+ask me before implementing new features.**
 
-var userPrefix = 'user_';
+i will happily merge pull requests that fix bugs with reasonable code.
 
-userTable
-  .select('*', userColumns.map(function(x) {
-    var mapping = {}
-    mapping[userPrefix] = 'user.' + x;
-    return mapping;
-  })
-  .join(
-    type: 'left'
-    table: 'user' or subquery
-    where:
+i will only merge pull requests that modify/add functionality
+if the changes align with my goals for this package
+and only if the changes are well written, documented and tested.
 
-  )
-  // mergePrefixed
-  // collapsePrefixed
-  .queueMergePrefixed({
-    prefix: userPrefix
-    as: 'user' // default prefix.slice(0, -1)
-  })
-  .find(
-```
-
-thats mesa
-
-read the principles or the detailed reference by example.
-
-motivating example
-
-you can nest embeds.
-
-## why just postgres?
-
-we are just using postgres, not mysql, not sqlite.
+**communicate:** write an issue to start a discussion
+before writing code that may or may not get merged.
 
 ## [license: MIT](LICENSE)
-
