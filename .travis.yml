@@ -1,5 +1,11 @@
 language: node_js
 node_js:
-    - "0.8"
-    - "0.10"
-script: npm test
+  - "0.10"
+script: "node_modules/nodeunit/bin/nodeunit test/*.coffee"
+env:
+  global:
+    - DROP_DATABASE="psql -c 'DROP DATABASE IF EXISTS travis_ci_test' -U postgres"
+    - CREATE_DATABASE="psql -c 'CREATE DATABASE travis_ci_test' -U postgres"
+    - DATABASE_URL="postgres://postgres@localhost/travis_ci_test"
+addons:
+  postgresql: "9.3"
