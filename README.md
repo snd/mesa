@@ -4,13 +4,7 @@
 [![Build Status](https://travis-ci.org/snd/mesa.svg?branch=master)](https://travis-ci.org/snd/mesa/branches)
 [![Dependencies](https://david-dm.org/snd/mesa.svg)](https://david-dm.org/snd/mesa)
 
-> simply elegant sql for nodejs:
-mesa is an build and execute queries, manage connections
-
-
-mesa is an immensely useful and pragmatic
-
-as simple as possible.
+> simply elegant sql for nodejs
 
 **this documentation targets the upcoming `mesa@1.0.0` release
 currently in alpha and available on npm as `mesa@1.0.0-alpha.*`.**
