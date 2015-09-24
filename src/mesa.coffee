@@ -532,6 +532,8 @@ Mesa.prototype =
       originalRecords
 
   embed: (records, args...) ->
+    if records.length is 0
+      return records
     @baseEmbed records, helpers.normalizeIncludeArguments @, args...
 
   include: (args...) ->
