@@ -72,6 +72,16 @@ mesa configuration methods are [pure](https://en.wikipedia.org/wiki/Pure_functio
 they create a NEW mesa-object copy all OWN properties over to it,
 set some property and return it.**
 
+this has no effect:
+
+``` js
+mesa
+  .setConnection(function(cb) {
+    pg.connect('postgres://localhost/your-database', cb);
+  });
+```
+it creates a new object that is not used anywhere and eventually gets garbage collected.
+
 let's configure some tables:
 
 ``` js
@@ -265,6 +275,18 @@ This part is coming soon.
 ## delete queries
 
 This part is coming soon.
+
+## sql fragments
+
+an sql fragment is any object with the following properties:
+
+an sql([escape]) method which returns an sql string
+takes an optional parameter escape which is a function to be used to escape column and table names in the resulting sql
+a params() method which returns an array
+
+at the heart of mesa is the query method
+
+if you pass mesa (which is an sql fragment) into the query function...
 
 ## connections revisited
 
