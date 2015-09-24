@@ -2,6 +2,7 @@
 
 [![NPM Package](https://img.shields.io/npm/v/mesa.svg?style=flat)](https://www.npmjs.org/package/mesa)
 [![Build Status](https://travis-ci.org/snd/mesa.svg?branch=master)](https://travis-ci.org/snd/mesa/branches)
+[![codecov.io](http://codecov.io/github/snd/mesa/coverage.svg?branch=master)](http://codecov.io/github/snd/mesa?branch=master)
 [![Dependencies](https://david-dm.org/snd/mesa.svg)](https://david-dm.org/snd/mesa)
 
 > simply elegant sql for nodejs
