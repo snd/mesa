@@ -9,24 +9,10 @@ pg = require 'pg'
 mesa = require '../../src/mesa'
 
 ###################################################################################
-# constants
-
-# for defaults
-DATABASE_NAME = 'mesa_test'
-
-DATABASE_URL = process.env.DATABASE_URL or "postgres://localhost/#{DATABASE_NAME}"
-
-DROP_DATABASE = process.env.DROP_DATABASE or "psql -c 'DROP DATABASE IF EXISTS #{DATABASE_NAME};'"
-CREATE_DATABASE = process.env.CREATE_DATABASE or "psql -c 'CREATE DATABASE #{DATABASE_NAME};'"
-
-###################################################################################
 # exports
 
 module.exports =
-  DATABASE_URL: DATABASE_URL
-
-  mesa: mesa
-    .setConnection (cb) -> pg.connect DATABASE_URL, cb
+  mesa: mesa.setConnection (cb) -> pg.connect process.env.DATABASE_URL, cb
     # .debug (args...) -> console.log args[...3]...
 
   spy: (inner = ->) ->
@@ -57,11 +43,11 @@ module.exports =
     console.log 'setUp', 'BEGIN'
     console.log 'setUp', 'drop database'
 
-    resetDatabase = child_process.execAsync(DROP_DATABASE)
+    resetDatabase = child_process.execAsync(process.env.DROP_DATABASE)
       .then (stdout) ->
         # console.log stdout
         console.log 'setUp', 'create database'
-        child_process.execAsync(CREATE_DATABASE)
+        child_process.execAsync(process.env.CREATE_DATABASE)
       .then (stdout) ->
         # console.log stdout
         stdout
@@ -81,10 +67,10 @@ module.exports =
     console.log 'tearDown', 'BEGIN'
     console.log 'tearDown', 'destroy pool'
 
-    module.exports.pgDestroyPool(DATABASE_URL)
+    module.exports.pgDestroyPool(process.env.DATABASE_URL)
       .then ->
         console.log 'tearDown', 'drop database'
-        child_process.execAsync(DROP_DATABASE)
+        child_process.execAsync(process.env.DROP_DATABASE)
       .then (stdout) ->
         console.log 'tearDown', 'END'
         done?()
