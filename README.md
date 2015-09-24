@@ -127,6 +127,8 @@ rRatedMoviesOfThe2000s.params();
 // -> [2000, 2009, 'R']
 ```
 
+### query
+
 ### mohair
 
 mesa uses mohair to generate sql which it then sends to the database.
@@ -134,6 +136,9 @@ in addition to it's own methods every mesa-object has the entire interface
 of a mohair-object.
 for this reason the mohair methods are not documented in this readme.
 consult the mohair documentation as well to get the full picture.
+
+mesa supports all methods supported by mohair with some additions.
+look into mohairs documentation to get the full picture of what's possible with mesa.
 
 **mohair powers mesa's `.where`
 
@@ -618,6 +623,8 @@ userTable
   .find(function(users) {
   });
 ```
+
+## mesa by example
 
 ## contribution
 
