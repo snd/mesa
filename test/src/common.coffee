@@ -6,7 +6,7 @@ fs = Promise.promisifyAll require 'fs'
 
 pg = require 'pg'
 
-mesa = require '../../src/mesa'
+mesa = require '../../lib/mesa'
 
 ###################################################################################
 # exports

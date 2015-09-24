@@ -14,7 +14,8 @@ matrix:
         postgresql: "9.4"
     - node_js: "4.0"
       addons:
-        postgresql: "9.4"
-    - node_js: "4.0"
-      addons:
         postgresql: "9.3"
+    - node_js: "4.0"
+      script: npm run test-with-coverage
+      addons:
+        postgresql: "9.4"
