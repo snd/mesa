@@ -1,7 +1,4 @@
 language: node_js
-node_js:
-  - "0.10"
-  - "4.0"
 script: npm test
 env:
   global:
@@ -10,9 +7,14 @@ env:
     - CREATE_DATABASE="createdb travis_ci_test"
     - DATABASE_URL="postgres://postgres@localhost/travis_ci_test"
 sudo: false
-addons:
-  postgresql: "9.4"
 matrix:
   include:
-    - addons:
+    - node_js: "0.10"
+      addons:
+        postgresql: "9.4"
+    - node_js: "4.0"
+      addons:
+        postgresql: "9.4"
+    - node_js: "4.0"
+      addons:
         postgresql: "9.3"
