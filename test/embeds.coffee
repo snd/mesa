@@ -300,6 +300,18 @@ module.exports =
 
     'tearDown': teardown
 
+    'do not run embed queries if there are no records to embed into': (test) ->
+      movieTable
+        .include(
+          {forward: false, left: 'director_id', first: true, as: 'director'}
+          personTable
+        )
+        .where(name: 'Mad Max')
+        .find()
+        .then (movies) ->
+          test.deepEqual movies, []
+          test.done()
+
     'belongsTo: embed director in movie': (test) ->
       movieTable
         .include(
