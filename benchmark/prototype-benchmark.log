@@ -1,0 +1,79 @@
+# n = 10
+
+object.alpha(i): 0ms
+process.memoryUsage() { rss: 26316800, heapTotal: 17603072, heapUsed: 6515440 }
+object.bravo(i): 0ms
+process.memoryUsage() { rss: 26660864, heapTotal: 18635008, heapUsed: 6862720 }
+object.charlie(i): 0ms
+process.memoryUsage() { rss: 26701824, heapTotal: 18635008, heapUsed: 6915384 }
+object.delta(i): 0ms
+process.memoryUsage() { rss: 26738688, heapTotal: 18635008, heapUsed: 6968744 }
+object.echo(i): 0ms
+process.memoryUsage() { rss: 26791936, heapTotal: 18635008, heapUsed: 7031344 }
+10
+object._alpha: 0ms
+10
+object._bravo: 0ms
+10
+object._charlie: 0ms
+10
+object._delta: 0ms
+10
+object._echo: 0ms
+n = 10: 3ms
+
+
+# n = 100
+
+object.alpha(i): 4ms
+process.memoryUsage() { rss: 27308032, heapTotal: 18635008, heapUsed: 7628104 }
+object.bravo(i): 9ms
+process.memoryUsage() { rss: 28762112, heapTotal: 20674816, heapUsed: 9092960 }
+object.charlie(i): 14ms
+process.memoryUsage() { rss: 31113216, heapTotal: 22714624, heapUsed: 11436840 }
+object.delta(i): 26ms
+process.memoryUsage() { rss: 28872704, heapTotal: 19654912, heapUsed: 6512600 }
+object.echo(i): 24ms
+process.memoryUsage() { rss: 31830016, heapTotal: 22714624, heapUsed: 10941296 }
+100
+object._alpha: 0ms
+100
+object._bravo: 0ms
+100
+object._charlie: 0ms
+100
+object._delta: 0ms
+100
+object._echo: 0ms
+n = 100: 78ms
+
+
+# n = 1000
+
+object.alpha(i): 314ms
+process.memoryUsage() { rss: 32002048, heapTotal: 22702592, heapUsed: 11087824 }
+object.bravo(i): 978ms
+process.memoryUsage() { rss: 28672000, heapTotal: 19642880, heapUsed: 7440584 }
+object.charlie(i): 1629ms
+process.memoryUsage() { rss: 28643328, heapTotal: 18622976, heapUsed: 7355032 }
+object.delta(i): 2150ms
+process.memoryUsage() { rss: 32100352, heapTotal: 21682688, heapUsed: 10085776 }
+object.echo(i): 2931ms
+process.memoryUsage() { rss: 29380608, heapTotal: 18635008, heapUsed: 6185744 }
+1000
+object._alpha: 1ms
+1000
+object._bravo: 1ms
+1000
+object._charlie: 0ms
+1000
+object._delta: 0ms
+1000
+object._echo: 0ms
+n = 1000: 8012ms
+
+
+# n = 10000
+
+object.alpha(i): 34183ms
+process.memoryUsage() { rss: 35590144, heapTotal: 24766464, heapUsed: 13088056 }

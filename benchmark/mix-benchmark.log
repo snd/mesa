@@ -1,0 +1,150 @@
+# n = 10
+
+object.alpha(i): 1ms
+process.memoryUsage() { rss: 26021888, heapTotal: 17603072, heapUsed: 6785240 }
+object.bravo(i): 0ms
+process.memoryUsage() { rss: 26361856, heapTotal: 18635008, heapUsed: 7110552 }
+object.charlie(i): 0ms
+process.memoryUsage() { rss: 26365952, heapTotal: 18635008, heapUsed: 7130688 }
+object.delta(i): 0ms
+process.memoryUsage() { rss: 26365952, heapTotal: 18635008, heapUsed: 7143520 }
+object.echo(i): 0ms
+process.memoryUsage() { rss: 26370048, heapTotal: 18635008, heapUsed: 7157352 }
+10
+object._alpha: 0ms
+10
+object._bravo: 0ms
+10
+object._charlie: 0ms
+10
+object._delta: 0ms
+10
+object._echo: 0ms
+n = 10: 3ms
+
+
+# n = 100
+
+object.alpha(i): 1ms
+process.memoryUsage() { rss: 26378240, heapTotal: 18635008, heapUsed: 7215848 }
+object.bravo(i): 0ms
+process.memoryUsage() { rss: 26378240, heapTotal: 18635008, heapUsed: 7247480 }
+object.charlie(i): 0ms
+process.memoryUsage() { rss: 26378240, heapTotal: 18635008, heapUsed: 7281304 }
+object.delta(i): 0ms
+process.memoryUsage() { rss: 26378240, heapTotal: 18635008, heapUsed: 7320024 }
+object.echo(i): 1ms
+process.memoryUsage() { rss: 26378240, heapTotal: 18635008, heapUsed: 7360368 }
+100
+object._alpha: 0ms
+100
+object._bravo: 0ms
+100
+object._charlie: 0ms
+100
+object._delta: 0ms
+100
+object._echo: 0ms
+n = 100: 3ms
+
+
+# n = 1000
+
+object.alpha(i): 3ms
+process.memoryUsage() { rss: 26386432, heapTotal: 18635008, heapUsed: 7599192 }
+object.bravo(i): 6ms
+process.memoryUsage() { rss: 26386432, heapTotal: 18635008, heapUsed: 7843248 }
+object.charlie(i): 3ms
+process.memoryUsage() { rss: 26390528, heapTotal: 18635008, heapUsed: 8111296 }
+object.delta(i): 4ms
+process.memoryUsage() { rss: 26664960, heapTotal: 18635008, heapUsed: 8403448 }
+object.echo(i): 5ms
+process.memoryUsage() { rss: 26996736, heapTotal: 18635008, heapUsed: 8735648 }
+1000
+object._alpha: 0ms
+1000
+object._bravo: 0ms
+1000
+object._charlie: 0ms
+1000
+object._delta: 0ms
+1000
+object._echo: 0ms
+n = 1000: 22ms
+
+
+# n = 10000
+
+object.alpha(i): 27ms
+process.memoryUsage() { rss: 28573696, heapTotal: 18635008, heapUsed: 7012192 }
+object.bravo(i): 31ms
+process.memoryUsage() { rss: 28573696, heapTotal: 18635008, heapUsed: 9340480 }
+object.charlie(i): 34ms
+process.memoryUsage() { rss: 28897280, heapTotal: 18635008, heapUsed: 8122896 }
+object.delta(i): 39ms
+process.memoryUsage() { rss: 29097984, heapTotal: 18635008, heapUsed: 7044800 }
+object.echo(i): 44ms
+process.memoryUsage() { rss: 29097984, heapTotal: 18635008, heapUsed: 10253272 }
+10000
+object._alpha: 0ms
+10000
+object._bravo: 0ms
+10000
+object._charlie: 0ms
+10000
+object._delta: 0ms
+10000
+object._echo: 0ms
+n = 10000: 177ms
+
+
+# n = 100000
+
+object.alpha(i): 264ms
+process.memoryUsage() { rss: 34562048, heapTotal: 28055552, heapUsed: 10091232 }
+object.bravo(i): 318ms
+process.memoryUsage() { rss: 39641088, heapTotal: 29087488, heapUsed: 14100000 }
+object.charlie(i): 363ms
+process.memoryUsage() { rss: 40464384, heapTotal: 30119424, heapUsed: 16665176 }
+object.delta(i): 392ms
+process.memoryUsage() { rss: 41283584, heapTotal: 31151360, heapUsed: 13769424 }
+object.echo(i): 435ms
+process.memoryUsage() { rss: 42102784, heapTotal: 32183296, heapUsed: 14464072 }
+100000
+object._alpha: 0ms
+100000
+object._bravo: 0ms
+100000
+object._charlie: 0ms
+100000
+object._delta: 0ms
+100000
+object._echo: 0ms
+n = 100000: 1772ms
+
+
+# n = 1000000
+
+object.alpha(i): 2398ms
+process.memoryUsage() { rss: 48906240, heapTotal: 37389592, heapUsed: 18166712 }
+object.bravo(i): 3006ms
+process.memoryUsage() { rss: 60682240, heapTotal: 49163280, heapUsed: 32961296 }
+object.charlie(i): 3356ms
+process.memoryUsage() { rss: 72466432, heapTotal: 60936968, heapUsed: 46342728 }
+object.delta(i): 3920ms
+process.memoryUsage() { rss: 84246528, heapTotal: 72710656, heapUsed: 58377416 }
+object.echo(i): 4386ms
+process.memoryUsage() { rss: 91353088, heapTotal: 78815336, heapUsed: 62588776 }
+1000000
+object._alpha: 0ms
+1000000
+object._bravo: 0ms
+1000000
+object._charlie: 0ms
+1000000
+object._delta: 0ms
+1000000
+object._echo: 0ms
+n = 1000000: 17067ms
+
+
