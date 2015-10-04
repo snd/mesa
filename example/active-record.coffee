@@ -1,10 +1,10 @@
 _ = require 'lodash'
 
-# camelToSnake('camelCase') returns 'camel-case'
+# camelToSnake('camelCase') returns 'camel_case'
 camelToSnake = (string) ->
   string.replace /([a-z][A-Z])/g, (m) -> m[0] + '_' + m[1].toLowerCase()
 
-# snakeToCamel('snake-case') returns 'snakeCase'
+# snakeToCamel('snake_case') returns 'snakeCase'
 snakeToCamel = (string) ->
   string.replace /_([a-z])/g, (m) -> m[1].toUpperCase()
 
