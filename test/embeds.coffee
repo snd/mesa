@@ -12,7 +12,7 @@ idWhereName = (array, name) ->
   _.find(array, {name: name}).id
 
 names = (array) ->
-  _.pluck array, 'name'
+  _.map array, 'name'
 
 {normalizeLink, normalizeIncludeArguments} = mesa.helpers
 

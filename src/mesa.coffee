@@ -494,7 +494,7 @@ Mesa.prototype =
       # wait for previous include steps to continue
       soFar.then ->
         condition = {}
-        condition[include.right] = _.pluck prevRecords, include.left
+        condition[include.right] = _.map prevRecords, include.left
 
         include.table
           .where(condition)
