@@ -36,14 +36,14 @@
   },
   "dependencies": {
     "mohair": "0.13.0-rc.2",
-    "bluebird": "3.3.1",
+    "bluebird": "3.3.3",
     "lodash": "4.5.1"
   },
   "devDependencies": {
     "coffee-script": "1.10.0",
-    "pg": "4.4.2",
+    "pg": "4.5.1",
     "nodeunit": "0.9.1",
-    "istanbul": "0.3.21",
+    "istanbul": "0.4.2",
     "codecov.io": "0.1.6"
   },
   "scripts": {
