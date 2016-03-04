@@ -27,10 +27,7 @@
     "type": "git",
     "url": "git://github.com/snd/mesa.git"
   },
-  "licenses": {
-    "type": "MIT",
-    "url": "git://github.com/snd/mesa/LICENSE"
-  },
+  "license": "MIT",
   "engines": {
     "node": ">=0.10.0"
   },
