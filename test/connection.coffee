@@ -17,6 +17,14 @@ module.exports =
         test.equals debug.calls.length, 2
         test.done()
 
+  'getConnection - error': (test) ->
+    mesa
+      .setConnection (cb) -> cb new Error 'expected connection error'
+      .getConnection()
+      .catch (err) ->
+        test.equals err.message, 'expected connection error'
+        test.done()
+
   'wrapInTransaction - commit': (test) ->
     test.expect 3
     debug = spy()

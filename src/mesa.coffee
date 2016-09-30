@@ -272,7 +272,7 @@ Mesa.prototype =
         return connection (err, result, realDone) ->
           done = ->
             debug? 'connection', 'done', {}, {connection: connection}, that
-            realDone()
+            realDone?()
           if err?
             done?()
             return reject err
