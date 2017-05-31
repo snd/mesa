@@ -170,17 +170,16 @@ module.exports.first = (cb) ->
 
         self.hookBeforeFirst? self, connection, sql, params
         connection.query sql, params, (err, results) ->
+            done?()
             self.hookAfterFirst? self, connection, sql, params, err, results
 
             if err?
-                done?()
                 cb err
                 return
 
             record = results.rows[0]
 
             unless record?
-                done?()
                 cb null, null
                 return
 
@@ -189,10 +188,8 @@ module.exports.first = (cb) ->
                 self.hookAfterGetIncludesForFirst? self, connection, err, withIncludes
 
                 if err?
-                    done?()
                     cb err
                     return
-                done?()
                 cb null, withIncludes[0]
 
 module.exports.find = (cb) ->
@@ -211,16 +208,15 @@ module.exports.find = (cb) ->
 
         self.hookBeforeFind? self, connection, sql, params
         connection.query sql, params, (err, results) ->
+            done?()
             self.hookAfterFind? self, connection, sql, params, err, results
             if err?
-                done?()
                 cb err
                 return
 
             records = results.rows
 
             if records.length is 0
-                done?()
                 cb null, []
                 return
 
@@ -229,11 +225,8 @@ module.exports.find = (cb) ->
                 self.hookAfterGetIncludesForFind? self, connection, err, withIncludes
 
                 if err?
-                    done?()
                     cb err
                     return
-
-                done?()
 
                 cb null, withIncludes
 
